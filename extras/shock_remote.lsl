@@ -126,7 +126,7 @@ default
         {
             if (mesg == "☠ Shock") // User activated the target's shock feature.
             {
-                llSetColor(<0.0, 0.0, 0.0>, g_shockLED); // From Raithspere's script.
+                llSetColor(<0.0, 0.0, 0.0>, g_shockLED); // From RaithSphere's script.
                 llSetColor(<1.0, 0.0, 0.0>, g_readyLED);
                 llTriggerSound("a530bfbe-1ee2-8d8e-12e5-b4d2b2cf0037", 1.0);
                 llSleep(3.0);
