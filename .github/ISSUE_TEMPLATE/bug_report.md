@@ -27,8 +27,8 @@ If applicable, add screenshots to help explain your problem.
  - OS: [e.g. Windows 10]
  - Viewer: [e.g. Vanilla, Firestorm]
  - Viewer version: [e.g. 6.3.2]
- - Sub-project: [e.g. Titler, Collar]
- - Script version: [e.g. 0.24]
+ - Script: [e.g. Collar, Leash Handle]
+ - Script version: [e.g. 1.0.1]
 
 **Additional context**
 Add any other context about the problem here.
