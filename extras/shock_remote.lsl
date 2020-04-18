@@ -1,4 +1,4 @@
-// [SGD] RRDC Shock Remote v1.1.0 - Copyright 2020 Alex Pascal & RaithSphere Starpaw @ Second Life.
+// [SGD] RRDC Shock Remote v1.1.1 - Copyright 2020 Alex Pascal & RaithSphere Starpaw @ Second Life.
 // ---------------------------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
 //  If a copy of the MPL was not distributed with this file, You can obtain one at 
@@ -89,13 +89,8 @@ default
             integer i;
             for (i = 0; i < llGetListLength(g_targetList); i+=2)
             {
-                string name = llGetDisplayName(llList2Key(g_targetList, i+1));
-                if (name == "???" || name == "") // Display name or user name.
-                {
-                    name = llKey2Name(llList2Key(g_targetList, i+1));
-                }
-
-                prompt += llList2String(g_targetList, i) + " -- " + name + "\n";
+                prompt  += llList2String(g_targetList, i) + " -- secondlife:///app/agent/" + 
+                           llList2String(g_targetList, i+1) + "/completename\n";
                 buttons += [llList2String(g_targetList, i)];
             }
 
