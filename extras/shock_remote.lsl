@@ -9,7 +9,6 @@ integer g_collarHandle  = 0;                                // Listen handle for
 string  g_collarTarget  = "";                               // UUID of current target.
 list    g_targetList    = [];                               // List of potential targets.
 // ---------------------------------------------------------------------------------------------------------
-integer g_powerLED      = 1;                                // Face for the power LED.
 integer g_readyLED      = 2;                                // Face for the ready LED.
 integer g_shockLED      = 3;                                // Face for the shock LED.
 // ---------------------------------------------------------------------------------------------------------
@@ -19,6 +18,31 @@ integer g_shockLED      = 3;                                // Face for the shoc
 integer getAvChannel(key av)
 {
     return (0x80000000 | ((integer)("0x"+(string)av) ^ g_appChan));
+}
+
+// doShockEffects - Triggers remote effects for when user activates shock on an inmate.
+//                  Adapted from RaithSphere's shock remote script.
+// ---------------------------------------------------------------------------------------------------------
+doShockEffects()
+{
+    llSetLinkPrimitiveParamsFast(LINK_THIS, [
+        PRIM_ALPHA_MODE, g_shockLED, PRIM_ALPHA_MODE_NONE, 0,
+        PRIM_GLOW, g_shockLED, 0.0,
+        PRIM_ALPHA_MODE, g_readyLED, PRIM_ALPHA_MODE_NONE, 0,
+        PRIM_GLOW, g_readyLED, 0.0
+    ]);
+    llTriggerSound("a530bfbe-1ee2-8d8e-12e5-b4d2b2cf0037", 1.0);
+    llSleep(3.0);
+    llSetLinkPrimitiveParamsFast(LINK_THIS, [
+        PRIM_ALPHA_MODE, g_shockLED, PRIM_ALPHA_MODE_EMISSIVE, 0,
+        PRIM_GLOW, g_shockLED, 0.1
+    ]);
+    llSleep(1.0);
+    llSetLinkPrimitiveParamsFast(LINK_THIS, [
+        PRIM_ALPHA_MODE, g_readyLED, PRIM_ALPHA_MODE_EMISSIVE, 0,
+        PRIM_GLOW, g_readyLED, 0.1
+    ]);
+    llTriggerSound("0a942914-a743-e88a-66cd-ccec2cf43f6d", 0.5);
 }
 
 default
@@ -126,14 +150,7 @@ default
         {
             if (mesg == "☠ Shock") // User activated the target's shock feature.
             {
-                llSetColor(<0.0, 0.0, 0.0>, g_shockLED); // From RaithSphere's script.
-                llSetColor(<1.0, 0.0, 0.0>, g_readyLED);
-                llTriggerSound("a530bfbe-1ee2-8d8e-12e5-b4d2b2cf0037", 1.0);
-                llSleep(3.0);
-                llSetColor(<0.0, 1.0, 1.0>, g_shockLED);
-                llSleep(1.0);
-                llSetColor(<0.0, 1.0, 0.0>, g_readyLED);
-                llTriggerSound("0a942914-a743-e88a-66cd-ccec2cf43f6d", 0.5);
+                doShockEffects();
             }
         }
     }
