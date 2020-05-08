@@ -345,8 +345,8 @@ toggleMode(integer mode)
 // ---------------------------------------------------------------------------------------------------------
 updateInmateInfo(string inmateNum, string inmateName)
 {
-    list l = llParseString2List(llList2String(
-        llGetLinkPrimitiveParams(g_leashLink, [PRIM_DESC]), 0), ["|"], []);
+    list l = llParseString2List(llBase64ToString(llList2String(
+        llGetLinkPrimitiveParams(g_leashLink, [PRIM_DESC]), 0)), ["|"], []);
     
     if (((integer)inmateNum) > 0 && llStringLength(inmateNum) == 5) // Set inmate number.
     {
@@ -366,7 +366,9 @@ updateInmateInfo(string inmateNum, string inmateName)
         l = llListReplaceList(l, ["(No Name)"], 1, 1);
     }
 
-    llSetLinkPrimitiveParamsFast(g_leashLink, [PRIM_DESC, (g_inmateInfo = llDumpList2String(l, "|"))]);
+    llSetLinkPrimitiveParamsFast(g_leashLink, [
+        PRIM_DESC, llStringToBase64(g_inmateInfo = llDumpList2String(l, "|"))
+    ]);
 }
 
 // giveCharSheet - Gives a copy of the character sheet to the user, if present.
