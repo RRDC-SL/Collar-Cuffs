@@ -1,4 +1,4 @@
-// [SGD] RRDC Inmate Number Query Stub v1.0 - Copyright 2020 Alex Pascal (Alex Carpenter) @ Second Life.
+// [SGD] RRDC Inmate Number Query Stub v1.0.1 - Copyright 2020 Alex Pascal (Alex Carpenter) @ Second Life.
 // ---------------------------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
 //  If a copy of the MPL was not distributed with this file, You can obtain one at 
@@ -34,14 +34,16 @@ default
 
     listen(integer chan, string name, key id, string mesg)
     {
-        // Reply Syntax: inmatereply <user-key> <inmate-number>
+        // Reply Syntax: inmatereply <user-key> <inmate-number>|<inmate-name>
         list l = llParseString2List(mesg, [" "], []);
         if (llToLower(llList2String(l, 0)) == "inmatereply" && // Verify message is genuine reply.
             llList2String(l, 1) == (string)llGetOwnerKey(id))
         {
             // Do something with the response.
             // A response of 00000 means the user hasn't set up the collar yet or isn't in the system.
-            llSay(0, llKey2Name(llGetOwnerKey(id)) + "'s inmate number is " + llList2String(l, 2));
+            l = llParseString2List(llList2String(l, 2), ["|"], []);
+            llSay(0, llList2String(l, 1) + " (" + llKey2Name(llGetOwnerKey(id)) + 
+                ")'s inmate number is " + llList2String(l, 0));
         }
     }
 }

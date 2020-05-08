@@ -1,4 +1,4 @@
-# [SGD] RRDC Collar and Cuffs v1.1.2 "Bolvangar" - User Manual #
+# [SGD] RRDC Collar and Cuffs v1.1.4 "Bolvangar" - User Manual #
 
 ---------------------------------------------------------------------------------------------------
 
@@ -87,6 +87,12 @@ Allows you to select from the inmate numbers associated with your account.
 * Only you (the wearer) can access this menu.
 * You can only select inmate numbers you have registered with the sim database.
 * The inmate number you select can be queried by scripts in-world.
+
+## CharName ##
+Allows you to set the name of the character associated with your inmate number.
+* Only you (the wearer) can access this menu.
+* Name field is limited to 30 characters in length.
+* The character name you specify can be queried by scripts in-world.
 
 ## Textures ##
 Allows you to select one of six different metal textures for your collar and cuffs.

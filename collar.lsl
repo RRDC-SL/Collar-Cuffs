@@ -1,4 +1,4 @@
-// [SGD] RRDC Collar v1.1.3 "Bolvangar" - Copyright 2020 Alex Pascal (Alex Carpenter) @ Second Life.
+// [SGD] RRDC Collar v1.1.4 "Bolvangar" - Copyright 2020 Alex Pascal (Alex Carpenter) @ Second Life.
 // ---------------------------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
 //  If a copy of the MPL was not distributed with this file, You can obtain one at 
@@ -52,7 +52,7 @@ string  g_shacklePartTarget;                    // Key of the target prim for sh
 // Data Store Variables.
 // ---------------------------------------------------------------------------------------------------------
 key     g_iRequestKey;                          // Inmate numbers request key.
-string  g_inmateNum;                            // The current character's inmate number.
+string  g_inmateInfo;                           // The current character's inmate number and name.
 string  g_animState;                            // Current AO animation state.
 list    g_animList;                             // List of currently playing (base) anim names.
 list    g_avList;                               // Tracks leash/chaingang enabled avatars.
@@ -341,6 +341,34 @@ toggleMode(integer mode)
     }
 }
 
+// updateInmateInfo - Sets inmate info or defaults if not present.
+// ---------------------------------------------------------------------------------------------------------
+updateInmateInfo(string inmateNum, string inmateName)
+{
+    list l = llParseString2List(llList2String(
+        llGetLinkPrimitiveParams(g_leashLink, [PRIM_DESC]), 0), ["|"], []);
+    
+    if (((integer)inmateNum) > 0 && llStringLength(inmateNum) == 5) // Set inmate number.
+    {
+        l = llListReplaceList(l, [inmateNum], 0, 0);
+    }
+    else if (((integer)llList2String(l, 0)) <= 0 || llStringLength(llList2String(l, 0)) != 5)
+    {
+        l = llListReplaceList(l, ["00000"], 0, 0);
+    }
+
+    if (inmateName != "") // Set inmate name.
+    {
+        l = llListReplaceList(l, [inmateName], 1, 1);
+    }
+    else if (llList2String(l, 1) == "")
+    {
+        l = llListReplaceList(l, ["(No Name)"], 1, 1);
+    }
+
+    llSetLinkPrimitiveParamsFast(g_leashLink, [PRIM_DESC, (g_inmateInfo = llDumpList2String(l, "|"))]);
+}
+
 // giveCharSheet - Gives a copy of the character sheet to the user, if present.
 // ---------------------------------------------------------------------------------------------------------
 giveCharSheet(key user)
@@ -484,7 +512,7 @@ showMenu(string menu, key user)
     }
     else if (menu == "settings") // Settings menu.
     {
-        buttons = [" ", " ", "↺ Main", "📜 Inmate #", "📜 Textures"];
+        buttons = ["✎ CharName", " ", "↺ Main", "📜 Inmate #", "📜 Textures"];
 
         if (!(g_settings & 0x00000100))
         {
@@ -557,19 +585,14 @@ state main
             else if (tag == "leashingPoint")
             {
                 g_leashLink = i;
-
-                // Retrieve stored inmate number.
-                g_inmateNum = llList2String(llGetLinkPrimitiveParams(i, [PRIM_DESC]), 0);
-                if (((integer)g_inmateNum) <= 0 || llStringLength(g_inmateNum) != 5)
-                {
-                    g_inmateNum = "00000";
-                }
             }
             else if (tag == "chainToShacklesPoint")
             {
                 g_shackleLink = i;
             }
         }
+
+        updateInmateInfo("", ""); // Update inmate info from link description.
 
         // Parse the description field for potential LM tags.
         list l = llParseString2List(llGetObjectDesc(),[":"],[]);
@@ -690,7 +713,7 @@ state main
                     if (llToLower(llList2String(l, 0)) == "inmatequery") // inmatequery <user-key>
                     {
                         llRegionSayTo(id, g_appChan, "inmatereply " + // inmatereply <user-key> <inmate-number>
-                            (string)llGetOwner() + " " + g_inmateNum
+                            (string)llGetOwner() + " " + g_inmateInfo
                         );
                     }
                     else if (llToLower(llList2String(l, 0)) == "getmenu") // getmenu <user-key>
@@ -1038,6 +1061,13 @@ state main
                         g_iRequestKey = llHTTPRequest(g_apiURL + (string)llGetOwner(), [], "");
                         return;
                     }
+                    else if (mesg == "✎ CharName") // Set character name.
+                    {
+                        llTextBox(id, "\nWhat is your inmate character's name?\n\nCurrent value: " +
+                            llList2String(llParseString2List(g_inmateInfo, ["|"], []), 1),
+                            getAvChannel(llGetOwner()));
+                        return;
+                    }
                     // Texture Commands.
                     // -----------------------------------------------------------------------------------------
                     else if (mesg == "📜 Textures") // Texture select.
@@ -1115,9 +1145,17 @@ state main
                     // -----------------------------------------------------------------------------------------
                     else if (((integer)mesg) > 0 && llStringLength(mesg) == 5)
                     {
-                        g_inmateNum = mesg;
-                        llSetLinkPrimitiveParamsFast(g_leashLink, [PRIM_DESC, g_inmateNum]);
-                        llOwnerSay("Your inmate number has been set to: " + g_inmateNum);
+                        updateInmateInfo(mesg, ""); // Update inmate number.
+                        llOwnerSay("Your inmate number has been set to: " +
+                            llList2String(llParseString2List(g_inmateInfo, ["|"], []), 0));
+                    }
+                    // Set Inmate Name.
+                    // -----------------------------------------------------------------------------------------
+                    else if (llStringLength(mesg) <= 30)
+                    {
+                        updateInmateInfo("", llStringTrim(mesg, STRING_TRIM));
+                        llOwnerSay("Your character name has been set to: " +
+                            llList2String(llParseString2List(g_inmateInfo, ["|"], []), 1));
                     }
                 }
             }
@@ -1273,7 +1311,8 @@ state main
             if (llGetListLength(l) > 0) // If the list is non-zero in size, show a menu.
             {
                 llDialog(llGetOwner(), 
-                    "\nWhat inmate number do you want to use?\n\nCurrent value: " + (string)g_inmateNum, 
+                    "\nWhat inmate number do you want to use?\n\nCurrent value: " + 
+                    llList2String(llParseString2List(g_inmateInfo, ["|"], []), 0),
                     [" ", " ", "↺ Settings"] + l, getAvChannel(llGetOwner())
                 );
             }

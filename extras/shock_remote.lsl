@@ -1,4 +1,4 @@
-// [SGD] RRDC Shock Remote v1.1.1 - Copyright 2020 Alex Pascal & RaithSphere Starpaw @ Second Life.
+// [SGD] RRDC Shock Remote v1.1.4 - Copyright 2020 Alex Pascal & RaithSphere Starpaw @ Second Life.
 // ---------------------------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
 //  If a copy of the MPL was not distributed with this file, You can obtain one at 
@@ -89,8 +89,9 @@ default
             integer i;
             for (i = 0; i < llGetListLength(g_targetList); i+=2)
             {
-                prompt  += llList2String(g_targetList, i) + " -- secondlife:///app/agent/" + 
-                           llList2String(g_targetList, i+1) + "/completename\n";
+                prompt  += llList2String(g_targetList, i) + " -- " + 
+                           llList2String(g_targetList, i+1) + " [secondlife:///app/agent/" + 
+                           llList2String(g_targetList, i+2) + "/completename]\n";
                 buttons += [llList2String(g_targetList, i)];
             }
 
@@ -116,7 +117,7 @@ default
                         llListenRemove(g_collarHandle);
                     }
                     // Hook in and get menu.
-                    g_collarTarget = llList2String(g_targetList, (idx + 1));
+                    g_collarTarget = llList2String(g_targetList, (idx + 2));
                     g_collarHandle = llListen(
                         getAvChannel((key)g_collarTarget), "", llGetOwner(), ""
                     );
@@ -133,11 +134,15 @@ default
                 list l = llParseString2List(mesg, [" "], []);
                 if (llToLower(llList2String(l, 0)) == "inmatereply" && // Genuine reply?
                     llList2String(l, 1) == (string)llGetOwnerKey(id) &&
-                    llList2String(l, 2) != "00000" &&   // Inmate has a valid number.
                     llGetListLength(g_targetList) < 12) // And the list still has space?
                 {
-                    g_targetList += [llList2String(l, 2), (string)llGetOwnerKey(id)];
-                    llSetTimerEvent(1.0);
+                    l = llParseString2List(llList2String(l, 2), ["|"], []);
+                    if (llList2String(l, 0) != "00000") // Inmate has a valid number.
+                    {
+                        g_targetList += [llList2String(l, 0), llList2String(l, 1), 
+                            (string)llGetOwnerKey(id)];
+                        llSetTimerEvent(1.0);
+                    }
                 }
             }
         }
