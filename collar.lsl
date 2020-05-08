@@ -366,8 +366,8 @@ updateInmateInfo(string inmateNum, string inmateName)
         l = llListReplaceList(l, ["(No Name)"], 1, 1);
     }
 
-    llSetLinkPrimitiveParamsFast(g_leashLink, [
-        PRIM_DESC, llStringToBase64(g_inmateInfo = llDumpList2String(l, "|"))
+    llSetLinkPrimitiveParamsFast(g_leashLink, [PRIM_DESC, llStringToBase64( // Fix Spaces.
+        g_inmateInfo = llDumpList2String(llParseString2List(llDumpList2String(l, "|"), [" "], []), " "))
     ]);
 }
 
