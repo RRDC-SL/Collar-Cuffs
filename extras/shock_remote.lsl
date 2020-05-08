@@ -87,7 +87,7 @@ default
             string prompt = "Choose an inmate below:\n\n";
             list buttons = [];
             integer i;
-            for (i = 0; i < llGetListLength(g_targetList); i+=2)
+            for (i = 0; i < llGetListLength(g_targetList); i+=3)
             {
                 prompt  += llList2String(g_targetList, i) + " -- " + 
                            llList2String(g_targetList, i+1) + " [secondlife:///app/agent/" + 
@@ -139,7 +139,7 @@ default
                     l = llParseString2List(llList2String(l, 2), ["|"], []);
                     if (llList2String(l, 0) != "00000") // Inmate has a valid number.
                     {
-                        g_targetList += [llList2String(l, 0), llList2String(l, 1), 
+                        g_targetList += [llList2String(l, 0), llList2String(l, 1),
                             (string)llGetOwnerKey(id)];
                         llSetTimerEvent(1.0);
                     }
