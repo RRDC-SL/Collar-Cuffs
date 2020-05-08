@@ -134,15 +134,12 @@ default
                 list l = llParseString2List(mesg, [" "], []);
                 if (llToLower(llList2String(l, 0)) == "inmatereply" && // Genuine reply?
                     llList2String(l, 1) == (string)llGetOwnerKey(id) &&
+                    llList2String(l, 2) != "00000" && // Inmate has a valid number.
                     llGetListLength(g_targetList) < 12) // And the list still has space?
                 {
-                    l = llParseString2List(llList2String(l, 2), ["|"], []);
-                    if (llList2String(l, 0) != "00000") // Inmate has a valid number.
-                    {
-                        g_targetList += [llList2String(l, 0), llList2String(l, 1),
-                            (string)llGetOwnerKey(id)];
-                        llSetTimerEvent(1.0);
-                    }
+                    g_targetList += [llList2String(l, 2), llList2String(l, 3),
+                        (string)llGetOwnerKey(id)];
+                    llSetTimerEvent(1.0);
                 }
             }
         }

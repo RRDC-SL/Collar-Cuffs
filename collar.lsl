@@ -346,7 +346,7 @@ toggleMode(integer mode)
 updateInmateInfo(string inmateNum, string inmateName)
 {
     list l = llParseString2List(llBase64ToString(llList2String(
-        llGetLinkPrimitiveParams(g_leashLink, [PRIM_DESC]), 0)), ["|"], []);
+        llGetLinkPrimitiveParams(g_leashLink, [PRIM_DESC]), 0)), [" "], []);
     
     if (((integer)inmateNum) > 0 && llStringLength(inmateNum) == 5) // Set inmate number.
     {
@@ -366,8 +366,11 @@ updateInmateInfo(string inmateNum, string inmateName)
         l = llListReplaceList(l, ["(No Name)"], 1, 1);
     }
 
-    llSetLinkPrimitiveParamsFast(g_leashLink, [PRIM_DESC, llStringToBase64( // Fix Spaces.
-        g_inmateInfo = llDumpList2String(llParseString2List(llDumpList2String(l, "|"), [" "], []), " "))
+    // Replace spaces in charname with special characters to ensure parse compatibility.
+    l = llListReplaceList(l, [llDumpList2String(llParseString2List(l, [" "], []), " ")], 1, 1);
+
+    llSetLinkPrimitiveParamsFast(g_leashLink, [ // Save updated inmate info.
+        PRIM_DESC, llStringToBase64(g_inmateInfo = llDumpList2String(l, " "))
     ]);
 }
 
@@ -1066,7 +1069,7 @@ state main
                     else if (mesg == "✎ CharName") // Set character name.
                     {
                         llTextBox(id, "\nWhat is your inmate character's name?\n\nCurrent value: " +
-                            llList2String(llParseString2List(g_inmateInfo, ["|"], []), 1),
+                            llList2String(llParseString2List(g_inmateInfo, [" "], []), 1),
                             getAvChannel(llGetOwner()));
                         return;
                     }
@@ -1149,7 +1152,7 @@ state main
                     {
                         updateInmateInfo(mesg, ""); // Update inmate number.
                         llOwnerSay("Your inmate number has been set to: " +
-                            llList2String(llParseString2List(g_inmateInfo, ["|"], []), 0));
+                            llList2String(llParseString2List(g_inmateInfo, [" "], []), 0));
                     }
                     // Set Inmate Name.
                     // -----------------------------------------------------------------------------------------
@@ -1157,7 +1160,7 @@ state main
                     {
                         updateInmateInfo("", llStringTrim(mesg, STRING_TRIM));
                         llOwnerSay("Your character name has been set to: " +
-                            llList2String(llParseString2List(g_inmateInfo, ["|"], []), 1));
+                            llList2String(llParseString2List(g_inmateInfo, [" "], []), 1));
                     }
                 }
             }
@@ -1314,7 +1317,7 @@ state main
             {
                 llDialog(llGetOwner(), 
                     "\nWhat inmate number do you want to use?\n\nCurrent value: " + 
-                    llList2String(llParseString2List(g_inmateInfo, ["|"], []), 0),
+                    llList2String(llParseString2List(g_inmateInfo, [" "], []), 0),
                     [" ", " ", "↺ Settings"] + l, getAvChannel(llGetOwner())
                 );
             }

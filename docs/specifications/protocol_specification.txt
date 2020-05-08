@@ -51,7 +51,7 @@ inmatequery     -   [From: Object. To: Collar] Asks for current inmate number.
                     inmatequery <user-key>
 
 inmatereply     -   [From: Collar. To: Object] Gives currently set inmate number.
-                    inmatereply <user-key> <inmate-number>|<inmate-name>
+                    inmatereply <user-key> <inmate-number> <inmate-name>
 
 *Note: Use llRegionSay and llRegionSayTo for this protocol when possible.
 *Note2: Static channel -89039937. Collar userchan.

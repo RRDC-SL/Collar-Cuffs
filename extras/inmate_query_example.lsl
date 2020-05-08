@@ -41,9 +41,8 @@ default
         {
             // Do something with the response.
             // A response of 00000 means the user hasn't set up the collar yet or isn't in the system.
-            l = llParseString2List(llList2String(l, 2), ["|"], []);
-            llSay(0, llList2String(l, 1) + " (" + llKey2Name(llGetOwnerKey(id)) + 
-                ")'s inmate number is " + llList2String(l, 0));
+            llSay(0, llList2String(l, 3) + " (" + llKey2Name(llGetOwnerKey(id)) + 
+                ")'s inmate number is " + llList2String(l, 2));
         }
     }
 }
