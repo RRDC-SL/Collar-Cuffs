@@ -368,7 +368,7 @@ updateInmateInfo(string inmateNum, string inmateName)
 
     // Replace spaces in charname with special characters to ensure parse compatibility.
     l = llListReplaceList(l,
-        [llDumpList2String(llParseString2List(llList2String(l, 1), [" "], []), " ")], 1, 1); 
+        [llDumpList2String(llParseString2List(llList2String(l, 1), [" "], []), " ")], 1, 1);
 
     llSetLinkPrimitiveParamsFast(g_leashLink, [ // Save updated inmate info.
         PRIM_DESC, llStringToBase64(g_inmateInfo = llDumpList2String(l, " "))
