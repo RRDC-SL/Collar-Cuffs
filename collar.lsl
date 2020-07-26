@@ -1,4 +1,4 @@
-// [SGD] RRDC Collar v1.1.3 "Bolvangar" - Copyright 2020 Alex Pascal (Alex Carpenter) @ Second Life.
+// [SGD] RRDC Collar v1.1.4 "Bolvangar" - Copyright 2020 Alex Pascal (Alex Carpenter) & RaithSphere Xue (RaithSphere Digipaws) @ Second Life.
 // ---------------------------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
 //  If a copy of the MPL was not distributed with this file, You can obtain one at 
@@ -8,7 +8,9 @@
 // System Configuration Variables
 // ---------------------------------------------------------------------------------------------------------
 string  g_apiURL      = "http://rrdc.xyz/json/UUID/";       // URL for the inmate number API request.
+string  g_updateURL   = "http://rrdc.xyz/collar/version/";     // URL for the version ID
 integer g_appChan     = -89039937;                          // The channel for this application set.
+integer g_version     = 114;
 
 // =========================================================================================================
 // CAUTION: Modifying anything below this line may cause issues. Edit at your own risk!
@@ -52,6 +54,7 @@ string  g_shacklePartTarget;                    // Key of the target prim for sh
 // Data Store Variables.
 // ---------------------------------------------------------------------------------------------------------
 key     g_iRequestKey;                          // Inmate numbers request key.
+key     g_vRequestKey;                          // version request key.
 string  g_inmateNum;                            // The current character's inmate number.
 string  g_animState;                            // Current AO animation state.
 list    g_animList;                             // List of currently playing (base) anim names.
@@ -166,6 +169,14 @@ doAnimationOverride(integer on)
             llStopAnimation(llList2String(g_animList, i) + getAnimVersion(!(g_settings & 0x00000001)));
         }
     }
+}
+
+// versionCheck - Checks against the datbase for the current collar version - this is very crude right now but it works
+versionCheck()
+{
+    llOwnerSay("Running version check");
+    g_vRequestKey = llHTTPRequest(g_updateURL + (string)g_version+".html", [], "");
+    return;
 }
 
 // leashParticles - Turns outer/LockGuard chain/rope particles on or off.
@@ -537,6 +548,9 @@ state main
     // -----------------------------------------------------------------------------------------------------
     state_entry()
     {
+        // Run a version check and see if we are upto date
+        versionCheck();
+    
         // Set the texture anim for the electric effects on the collar base.
         llSetLinkTextureAnim(LINK_THIS, ANIM_ON | LOOP, 2, 32, 32, 0.0, 64.0, 20.4);
 
@@ -570,6 +584,12 @@ state main
                 g_shackleLink = i;
             }
         }
+
+        if(g_inmateNum == "00000")
+        {
+            llOwnerSay("Please assign your inmate ID to your collar\nYou can find this in 📜 Settings -> Inmate #");
+        }
+
 
         // Parse the description field for potential LM tags.
         list l = llParseString2List(llGetObjectDesc(),[":"],[]);
@@ -659,14 +679,21 @@ state main
         
         llSetTimerEvent(0.2); // Start the timer.
     }
-
+                  
+    // Run update check on attach
+    attach(key ID)
+    {
+        if(ID)
+        versionCheck();
+    }
+    
     // Reset the script on rez.
     // ---------------------------------------------------------------------------------------------------------
     on_rez(integer param)
     {
         llResetScript();
     }
-    
+
     // Show the menu to the user on touch.
     // ---------------------------------------------------------------------------------------------------------
     touch_start(integer num)
@@ -1285,7 +1312,17 @@ state main
                 showMenu("", llGetOwner());
             }
         }
+        else if (reqID == g_vRequestKey) // We requested this?
+        {
+            body = llStringTrim(body, STRING_TRIM); // Trim and parse the response.
+
+            if(body == "updateneeded")
+            {
+             llOwnerSay("A New version of the collar is avaliable please update");   
+            }   
+        }
         g_iRequestKey = NULL_KEY;
+        g_vRequestKey = NULL_KEY;
     }
 
     // Controls timed effects such as blinking light and shock.
