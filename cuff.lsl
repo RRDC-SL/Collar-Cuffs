@@ -199,25 +199,6 @@ default
                              "","","","","","collar","fbelt"],
                 llGetAttached(),llGetAttached());
         }
-
-        // List of Lockmeister IDs which have LockGuard equivalents.
-        // ------------------------------------------------------------------------------------
-        list lmID = ["rcuff","rbiceps","lbiceps","lcuff","lblade","rblade","rnipple",
-                     "lnipple","rtigh","ltigh","rlcuff","llcuff","pelvis","fbelt","bbelt",
-                     "rcollar","lcollar","thead","collar","lbit","rbit","nose","bcollar",
-                     "back"];
-
-        // List of LockGuard IDs which correspond to the Lockmeister IDs.
-        //  Multiples are separated by a bar |.
-        // ------------------------------------------------------------------------------------
-        list lgID = ["rightwrist|wrists|allfour","rightupperarm|arms","leftupperarm|arms",
-                     "leftwrist|wrists|allfour","harnessleftshoulderloop",
-                     "harnessrightshoulderloop","rightnipplering|nipples",
-                     "leftnipplering|nipples","rightupperthigh|thighs","leftupperthigh|thighs",
-                     "rightankle|ankles|allfour","leftankle|ankles|allfour",
-                     "clitring|cockring|ballring","frontbeltloop","backbeltloop",
-                     "collarrightloop","collarleftloop","topheadharness", "collarfrontloop",
-                     "leftgag","rightgag","nosering","collarbackloop","harnessbackloop"];
         
         integer j; // Parse all the LM tags found.
         list tList;
@@ -225,7 +206,12 @@ default
         {
             tag = llToLower(llStringTrim(llList2String(l,i), STRING_TRIM)); // Clean tag name.
             
-            j = llListFindList(lmID, [tag]);
+            j = llListFindList(
+                ["rcuff","rbiceps","lbiceps","lcuff","lblade","rblade","rnipple",
+                "lnipple","rtigh","ltigh","rlcuff","llcuff","pelvis","fbelt","bbelt",
+                "rcollar","lcollar","thead","collar","lbit","rbit","nose","bcollar",
+                "back"], [tag]
+            );
             if (j > -1) // LM tag. Add if not already present.
             {
                 if (llListFindList(g_LMTags, [tag]) <= -1)
@@ -234,7 +220,16 @@ default
                 }
 
                 // Add corresponding LG tags, if not present.
-                tList = llParseString2List(llList2String(lgID, j), ["|"], []);
+                tList = llParseString2List(llList2String(
+                    ["rightwrist|wrists|allfour","rightupperarm|arms","leftupperarm|arms",
+                    "leftwrist|wrists|allfour","harnessleftshoulderloop",
+                    "harnessrightshoulderloop","rightnipplering|nipples",
+                    "leftnipplering|nipples","rightupperthigh|thighs","leftupperthigh|thighs",
+                    "rightankle|ankles|allfour","leftankle|ankles|allfour",
+                    "clitring|cockring|ballring","frontbeltloop","backbeltloop",
+                    "collarrightloop","collarleftloop","topheadharness", "collarfrontloop",
+                    "leftgag","rightgag","nosering","collarbackloop","harnessbackloop"], j), ["|"], []
+                );
                 if (llListFindList(g_LGTags, [llList2String(tList, 0)]) <= -1)
                 {
                     g_LGTags += tList;
