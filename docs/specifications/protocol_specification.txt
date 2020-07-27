@@ -55,3 +55,18 @@ inmatereply     -   [From: Collar. To: Object] Gives currently set inmate number
 
 *Note: Use llRegionSay and llRegionSayTo for this protocol when possible.
 *Note2: Static channel -89039937. Collar userchan.
+
+JSON Web Protocol: (Minimum)
+------------------------------------
+Request URL: http://rrdc.xyz/json/UUID/<uuid>
+Expected Response:
+    [
+        {
+            "inmateID": "<5-digit-number>"
+        }
+    ]
+
+Request URL: http://rrdc.xyz/collar/version/<stable|rc|beta|nightly>
+    {
+        "collarVersion": "<semantic-version-number>"
+    }

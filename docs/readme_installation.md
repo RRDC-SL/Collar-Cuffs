@@ -1,4 +1,4 @@
-# [SGD] RRDC Collar and Cuffs v1.1.4 "Bolvangar" - Script Installation Manual #
+# [SGD] RRDC Collar and Cuffs v1.2.0 - Script Installation Manual #
 
 -------------------------------------------------------------------------------------------------------
 
