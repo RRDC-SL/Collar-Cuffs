@@ -57,8 +57,6 @@ string  g_animState;                            // Current AO animation state.
 list    g_animList;                             // List of currently playing (base) anim names.
 list    g_avList;                               // Tracks leash/chaingang enabled avatars.
 list    g_curMenus;                             // Tracks current menu by user.
-list    g_LGTags;                               // List of current LockGuard tags.
-list    g_LMTags;                               // List of current LockMeister tags.
 
 // Toggle Switch Bitfield.
 // ---------------------------------------------------------------------------------------------------------
@@ -116,7 +114,7 @@ integer inRange(key object)
     return (llVecDist(llGetPos(), llList2Vector(llGetObjectDetails(object, [OBJECT_POS]), 0)) < 6.0);
 }
 
-// doWebRequest - Requests data from an external source. 0=InmateNumList. 1=VersionCheck.
+// versionCheck - Checks the current version against a remote server.
 // ---------------------------------------------------------------------------------------------------------
 versionCheck(integer verbose)
 {
@@ -541,157 +539,75 @@ showMenu(string menu, key user)
     llDialog(user, text, buttons, getAvChannel(llGetOwner()));
 }
 
-// Make sure we have permissions before we allow anything to happen.
+// The main event state/thread of the collar program.
 // ---------------------------------------------------------------------------------------------------------
 default
 {
+    // Initialize collar. Stage 1.
+    // -----------------------------------------------------------------------------------------------------
     state_entry()
     {
-        llRequestPermissions(llGetOwner(), 
+        llRequestPermissions(llGetOwner(),
             (PERMISSION_TAKE_CONTROLS | PERMISSION_TRIGGER_ANIMATION)
         );
     }
 
+    // Initialize collar. Stage 2.
+    // -----------------------------------------------------------------------------------------------------
     run_time_permissions(integer perm)
     {
         if (perm & (PERMISSION_TAKE_CONTROLS | PERMISSION_TRIGGER_ANIMATION))
         {
-            state main;
-        }
-    }
+            versionCheck(FALSE); // Do initial startup version check.
 
-    on_rez(integer param) // Prevent getting stuck in default state.
-    {
-        llResetScript();
-    }
-}
+            // Set the texture anim for the electric effects on the collar base.
+            llSetLinkTextureAnim(LINK_THIS, ANIM_ON | LOOP, 2, 32, 32, 0.0, 64.0, 20.4);
 
-// Main state is where everything happens once we have perms.
-// ---------------------------------------------------------------------------------------------------------
-state main
-{
-    // Initialize collar.
-    // -----------------------------------------------------------------------------------------------------
-    state_entry()
-    {
-        versionCheck(FALSE); // Do initial startup version check.
-
-        // Set the texture anim for the electric effects on the collar base.
-        llSetLinkTextureAnim(LINK_THIS, ANIM_ON | LOOP, 2, 32, 32, 0.0, 64.0, 20.4);
-
-        integer i; // Find the prims we will work with.
-        string tag;
-        for (i = 1; i <= llGetNumberOfPrims(); i++)
-        {
-            tag = llList2String(llGetLinkPrimitiveParams(i, [PRIM_NAME]), 0);
-            if (tag == "powerCore")
+            integer i; // Find the prims we will work with.
+            string tag;
+            for (i = 1; i <= llGetNumberOfPrims(); i++)
             {
-                // Set texture anim for the power core.
-                llSetLinkTextureAnim(i, ANIM_ON | LOOP, ALL_SIDES, 20, 20, 0.0, 64.0, 30.4);
+                tag = llList2String(llGetLinkPrimitiveParams(i, [PRIM_NAME]), 0);
+                if (tag == "powerCore")
+                {
+                    // Set texture anim for the power core.
+                    llSetLinkTextureAnim(i, ANIM_ON | LOOP, ALL_SIDES, 20, 20, 0.0, 64.0, 30.4);
+                }
+                else if (tag == "LED")
+                {
+                    g_ledLink = i;
+                }
+                else if (tag == "leashingPoint")
+                {
+                    g_leashLink = i;
+                }
+                else if (tag == "chainToShacklesPoint")
+                {
+                    g_shackleLink = i;
+                }
             }
-            else if (tag == "LED")
+
+            updateInmateInfo("", ""); // Update inmate info from link description.
+
+            llMinEventDelay(0.2); // Slow events to reduce lag.
+
+            if (g_shackleLink <= 0 || g_leashLink <= 0)
             {
-                g_ledLink = i;
+                llOwnerSay("FATAL: Missing chain emitters!");
+                return;
             }
-            else if (tag == "leashingPoint")
-            {
-                g_leashLink = i;
-            }
-            else if (tag == "chainToShacklesPoint")
-            {
-                g_shackleLink = i;
-            }
-        }
 
-        updateInmateInfo("", ""); // Update inmate info from link description.
+            resetParticles();
+            shackleParticles(FALSE); // Stop any particle effects and init.
+            leashParticles(FALSE);
 
-        // Parse the description field for potential LM tags.
-        list l = llParseString2List(llGetObjectDesc(),[":"],[]);
-        
-        if(l == []) // If we have ZERO config information, make a guess based on attach point.
-        {
-            l = llList2List(["","collar","thead","lblade","rblade","lhand","rhand","llcuff",
-                            "rlcuff","collar","pelvis","lbit","rbit","","","","","nose",
-                            "rbiceps","rcuff","lbiceps","lcuff","rfbelt","rtigh","rlcuff",
-                            "lfbelt","ltigh","llcuff","fbelt","lnipple","rnipple","","","",
-                            "","","","","","collar","fbelt"],
-                llGetAttached(),llGetAttached());
-        }
+            llListen(-8888,"",NULL_KEY,""); // Open up LockGuard and Lockmeister listens.
+            llListen(-9119,"",NULL_KEY,"");
 
-        // List of Lockmeister IDs which have LockGuard equivalents.
-        // ------------------------------------------------------------------------------------
-        list lmID = ["rcuff","rbiceps","lbiceps","lcuff","lblade","rblade","rnipple",
-                    "lnipple","rtigh","ltigh","rlcuff","llcuff","pelvis","fbelt","bbelt",
-                    "rcollar","lcollar","thead","collar","lbit","rbit","nose","bcollar",
-                    "back"];
-
-        // List of LockGuard IDs which correspond to the Lockmeister IDs.
-        //  Multiples are separated by a bar |.
-        // ------------------------------------------------------------------------------------
-        list lgID = ["rightwrist|wrists|allfour","rightupperarm|arms","leftupperarm|arms",
-                    "leftwrist|wrists|allfour","harnessleftshoulderloop",
-                    "harnessrightshoulderloop","rightnipplering|nipples",
-                    "leftnipplering|nipples","rightupperthigh|thighs","leftupperthigh|thighs",
-                    "rightankle|ankles|allfour","leftankle|ankles|allfour",
-                    "clitring|cockring|ballring","frontbeltloop","backbeltloop",
-                    "collarrightloop","collarleftloop","topheadharness", "collarfrontloop",
-                    "leftgag","rightgag","nosering","collarbackloop","harnessbackloop"];
-        
-        integer j; // Parse all the LM tags found.
-        list tList;
-        for(i = 0; i < llGetListLength(l); i++)
-        {
-            tag = llToLower(llStringTrim(llList2String(l,i), STRING_TRIM)); // Clean tag name.
+            llListen(getAvChannel(llGetOwner()), "", "", ""); // Open collar/cuffs avChannel.
             
-            j = llListFindList(lmID, [tag]);
-            if (j > -1) // LM tag. Add if not already present.
-            {
-                if (llListFindList(g_LMTags, [tag]) <= -1)
-                {
-                    g_LMTags += [tag];
-                }
-
-                // Add corresponding LG tags, if not present.
-                tList = llParseString2List(llList2String(lgID, j), ["|"], []);
-                if (llListFindList(g_LGTags, [llList2String(tList, 0)]) <= -1)
-                {
-                    g_LGTags += tList;
-                }
-            }
+            llSetTimerEvent(0.2); // Start the timer.
         }
-
-        llMinEventDelay(0.2); // Slow events to reduce lag.
-
-        if (g_LMTags == [] || g_shackleLink <= 0 || g_leashLink <= 0)
-        {
-            llOwnerSay("FATAL: Unknown anchor and/or missing chain emitters!");
-            return;
-        }
-
-        resetParticles();
-        shackleParticles(FALSE); // Stop any particle effects and init.
-        leashParticles(FALSE);
-
-        llTakeControls( // Initial take of controls in passthrough, just to be safe.
-                        CONTROL_FWD |
-                        CONTROL_BACK |
-                        CONTROL_LEFT |
-                        CONTROL_RIGHT |
-                        CONTROL_ROT_LEFT |
-                        CONTROL_ROT_RIGHT |
-                        CONTROL_UP |
-                        CONTROL_DOWN |
-                        CONTROL_LBUTTON |
-                        CONTROL_ML_LBUTTON,
-                        FALSE, TRUE
-        );
-
-        llListen(-8888,"",NULL_KEY,""); // Open up LockGuard and Lockmeister listens.
-        llListen(-9119,"",NULL_KEY,"");
-
-        llListen(getAvChannel(llGetOwner()), "", "", ""); // Open collar/cuffs avChannel.
-        
-        llSetTimerEvent(0.2); // Start the timer.
     }
 
     // Reset the script on rez.
@@ -732,7 +648,7 @@ state main
                         showMenu("", llGetOwnerKey(id)); // Blank menu stops charsheet spam when out of range.
                     }
                 }
-                else if (llListFindList(g_LGTags, [llList2String(l, 1)]) > -1) // LG tag match.
+                else if (llList2String(l, 1) == "collarfrontloop") // LG tag match.
                 {
                     name = llToLower(llList2String(l, 0));
                     if (name == "unlink") // unlink collarfrontloop <leash|shackle>
@@ -1181,13 +1097,13 @@ state main
         // -----------------------------------------------------------------------------------------------------
         else if(chan == -8888 && llGetSubString(mesg, 0, 35) == ((string)llGetOwner()))
         {
-            if(llListFindList(g_LMTags, [llGetSubString(mesg, 36, -1)]) > -1)
+            if(llGetSubString(mesg, 36, -1) == "collar") // Talking to us?
             {
                 toggleMode(FALSE);
                 llRegionSayTo(id, -8888, mesg + " ok");
             }
-            else if (llGetSubString(mesg, 36, 54) == "|LMV2|RequestPoint|" &&      // LMV2.
-                     llListFindList(g_LMTags, [llGetSubString(mesg, 55, -1)]) > -1)
+            else if (llGetSubString(mesg, 36, 54) == "|LMV2|RequestPoint|" && // LMV2.
+                     llGetSubString(mesg, 55, -1) == "collar")
             {
                 llRegionSayTo(id, -8888, ((string)llGetOwner()) + "|LMV2|ReplyPoint|" + 
                     llGetSubString(mesg, 55, -1) + "|" + ((string)llGetLinkKey(g_leashLink))
@@ -1201,7 +1117,7 @@ state main
             list tList = llParseString2List(mesg, [" "], []);
             
             // lockguard [avatarKey/ownerKey] [item] [command] [variable(s)] 
-            if(llListFindList(g_LGTags, [llList2String(tList, 2)]) > -1 || llList2String(tList, 2) == "all")
+            if(llList2String(tList, 2) == "collarfrontloop" || llList2String(tList, 2) == "all")
             {
                 integer i = 3; // Start at the first command position and parse the commands.
                 while(i < llGetListLength(tList))
@@ -1273,7 +1189,7 @@ state main
                     else if(name == "ping")
                     {
                         llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " " +
-                            llList2String(g_LGTags, 0) + " okay"
+                            "collarfrontloop  okay"
                         );
                         i++;
                     }
@@ -1282,13 +1198,13 @@ state main
                         if((g_settings & 0x00000004))
                         {
                             llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " " + 
-                                llList2String(g_LGTags, 0) + " no"
+                                "collarfrontloop no"
                             );
                         }
                         else
                         {
                             llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " " + 
-                                llList2String(g_LGTags, 0) + " yes"
+                                "collarfrontloop yes"
                             );
                         }
                         i++;
