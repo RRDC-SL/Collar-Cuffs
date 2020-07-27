@@ -200,19 +200,6 @@ leashParticles(integer on)
     }
     else // If LG particles are to be turned on, turn them on.
     {
-        // Particle bitfield defaults.
-        integer nBitField = (PSYS_PART_TARGET_POS_MASK | PSYS_PART_FOLLOW_VELOCITY_MASK);
-    
-        if(g_partGravity == 0) // Add linear mask if gravity is not zero.
-        {
-            nBitField = (nBitField | PSYS_PART_TARGET_LINEAR_MASK);
-        }
-
-        if(g_partFollow) // Add follow mask if flag is set.
-        {
-            nBitField = (nBitField | PSYS_PART_FOLLOW_SRC_MASK);
-        }
-        
         llLinkParticleSystem(g_leashLink,
         [
             PSYS_SRC_PATTERN,           PSYS_SRC_PATTERN_DROP,
@@ -225,7 +212,10 @@ leashParticles(integer on)
             PSYS_PART_START_SCALE,      <g_partSizeX, g_partSizeY, 0.0>,
             PSYS_SRC_ACCEL,             <0.0, 0.0, (g_partGravity * -1.0)>,
             PSYS_SRC_TARGET_KEY,        (key)g_leashPartTarget,
-            PSYS_PART_FLAGS,            nBitField
+            PSYS_PART_FLAGS,            (PSYS_PART_TARGET_POS_MASK                           |
+                                         PSYS_PART_FOLLOW_VELOCITY_MASK                      |
+                                         PSYS_PART_TARGET_LINEAR_MASK * (g_partGravity == 0) |
+                                         PSYS_PART_FOLLOW_SRC_MASK * (g_partFollow == TRUE))
         ]);
     }
 }
@@ -243,19 +233,6 @@ shackleParticles(integer on)
     }
     else // Turn the inner particle system on.
     {
-        // Particle bitfield defaults.
-        integer nBitField = (PSYS_PART_TARGET_POS_MASK | PSYS_PART_FOLLOW_VELOCITY_MASK);
-    
-        if(0.3 == 0) // Add linear mask if gravity is not zero.
-        {
-            nBitField = (nBitField | PSYS_PART_TARGET_LINEAR_MASK);
-        }
-
-        if(TRUE) // Add follow mask if flag is set.
-        {
-            nBitField = (nBitField | PSYS_PART_FOLLOW_SRC_MASK);
-        }
-        
         llLinkParticleSystem(g_shackleLink,
         [
             PSYS_SRC_PATTERN,           PSYS_SRC_PATTERN_DROP,
@@ -266,9 +243,11 @@ shackleParticles(integer on)
             PSYS_SRC_TEXTURE,           "dbeee6e7-4a63-9efe-125f-ceff36ceeed2", // thinchain
             PSYS_PART_START_COLOR,      <1.0, 1.0, 1.0>,
             PSYS_PART_START_SCALE,      <0.04, 0.04, 0.0>,
-            PSYS_SRC_ACCEL,             <0.0, 0.0, (0.3 * -1.0)>,
+            PSYS_SRC_ACCEL,             <0.0, 0.0, -0.3>,
             PSYS_SRC_TARGET_KEY,        (key)g_shacklePartTarget,
-            PSYS_PART_FLAGS,            nBitField
+            PSYS_PART_FLAGS,            (PSYS_PART_TARGET_POS_MASK      |
+                                         PSYS_PART_FOLLOW_VELOCITY_MASK |
+                                         PSYS_PART_FOLLOW_SRC_MASK)
         ]);
     }
 }
