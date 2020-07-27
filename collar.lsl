@@ -391,16 +391,11 @@ giveCharSheet(key user)
                 " has taken a copy of your character sheet.");
 
             llGiveInventory(user, note); // Offer notecard.
-        }
-        else
-        {
-            llInstantMessage(user, "No character sheet is available.");
+            return;
         }
     }
-    else // No notecard present.
-    {
-        llInstantMessage(user, "No character sheet is available.");
-    }
+
+    llInstantMessage(user, "No character sheet is available.");
 }
 
 // showMenu - Given a menu name string, shows the appropriate menu.
@@ -450,17 +445,11 @@ showMenu(string menu, key user)
     list buttons = [];
     if (menu == "main") // Show main menu. ▩☐☒↺☠☯📜★✖
     {
-        // Wearer Menu. (Owner Only)
+        // Wearer Menu. (Others see this minus Settings)
         // -----------------------------------------------
         // ☯ CharSheet     ☠ Shock        📜 Poses
         // ☐ ChainGang     ☐ AnkleChain    ☐ Shackled
         // ☐ Leash         📜 Settings     ✖ Close
-        //
-        // Staff Menu. (Within 6m)
-        // -----------------------------------------------
-        // ☯ CharSheet     ☠ Shock        📜 Poses
-        // ☐ ChainGang     ☐ AnkleChain    ☐ Shackled
-        // ☐ Leash                         ✖ Close
 
         text = "Main Menu" + text;
 
