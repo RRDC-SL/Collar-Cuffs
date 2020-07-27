@@ -374,6 +374,11 @@ updateInmateInfo(string inmateNum, string inmateName)
     else if (((integer)llList2String(l, 0)) <= 0 || llStringLength(llList2String(l, 0)) != 5)
     {
         l = llListReplaceList(l, ["00000"], 0, 0);
+
+        llOwnerSay( // Null inmate number nag message.
+            "Warning: You must assign an Inmate ID to your collar or certain features may not work.\n" +
+            "To fix this, touch your collar and visit: 📜 Settings -> 📜 InmateID"
+        );
     }
 
     if (inmateName != "") // Set inmate name.
