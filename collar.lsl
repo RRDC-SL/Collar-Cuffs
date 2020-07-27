@@ -7,8 +7,8 @@
 
 // System Configuration Variables
 // ---------------------------------------------------------------------------------------------------------
-string  g_apiURL      = "http://rrdc.xyz/json/UUID/";       // URL for the inmate number API request.
-integer g_appChan     = -89039937;                          // The channel for this application set.
+string  g_appVersion  = "1.2.0";                // The current software version for the collar.
+integer g_appChan     = -89039937;              // The channel for this application set.
 
 // =========================================================================================================
 // CAUTION: Modifying anything below this line may cause issues. Edit at your own risk!
@@ -51,7 +51,7 @@ string  g_shacklePartTarget;                    // Key of the target prim for sh
 
 // Data Store Variables.
 // ---------------------------------------------------------------------------------------------------------
-key     g_iRequestKey;                          // Inmate numbers request key.
+key     g_requestKey;                           // Inmate numbers request key.
 string  g_inmateInfo;                           // The current character's inmate number and name.
 string  g_animState;                            // Current AO animation state.
 list    g_animList;                             // List of currently playing (base) anim names.
@@ -74,6 +74,8 @@ list    g_LMTags;                               // List of current LockMeister t
 // 0x00000080    0xFFFFFF7F    TRUE when the wearer is leashed to something.
 // 0x00000100    0xFFFFFEFF    TRUE when chain walk sounds are muted.
 // 0x00000200    0xFFFFFDFF    TRUE when shock cooldown is active.
+// 0x00000400    0xFFFFFBFF    TRUE when requestKey is a version check.
+// 0x00000800    0xFFFFF7FF    TRUE when version check is supposed to be verbose.
 // ---------------------------------------------------------------------------------------------------------
 integer g_settings;
 // ---------------------------------------------------------------------------------------------------------
@@ -112,6 +114,23 @@ float fMax(float f1, float f2)
 integer inRange(key object)
 {
     return (llVecDist(llGetPos(), llList2Vector(llGetObjectDetails(object, [OBJECT_POS]), 0)) < 6.0);
+}
+
+// doWebRequest - Requests data from an external source. 0=InmateNumList. 1=VersionCheck.
+// ---------------------------------------------------------------------------------------------------------
+versionCheck(integer verbose)
+{
+    if (verbose)
+    {
+        g_settings = (g_settings | 0x00000800);
+    }
+    else
+    {
+        g_settings = (g_settings & 0xFFFFF7FF);
+    }
+    
+    g_settings = (g_settings | 0x00000400); // Set request type flag.
+    g_requestKey = llHTTPRequest("http://rrdc.xyz/collar/version/stable", [], "");
 }
 
 // playRandomSound - Plays a random chain sound.
@@ -447,7 +466,7 @@ showMenu(string menu, key user)
 
     string text = "\n\nChoose an option:";
     list buttons = [];
-    if (menu == "main") // Show main menu. ▩☐☒↺☠☯📜✖
+    if (menu == "main") // Show main menu. ▩☐☒↺☠☯📜★✖
     {
         // Wearer Menu. (Owner Only)
         // -----------------------------------------------
@@ -518,7 +537,7 @@ showMenu(string menu, key user)
     }
     else if (menu == "settings") // Settings menu.
     {
-        buttons = ["✎ CharName", " ", "↺ Main", "📜 Inmate #", "📜 Textures"];
+        buttons = ["✎ CharName", "★ Version", "↺ Main", "📜 InmateID", "📜 Textures"];
 
         if (!(g_settings & 0x00000100))
         {
@@ -571,6 +590,8 @@ state main
     // -----------------------------------------------------------------------------------------------------
     state_entry()
     {
+        versionCheck(FALSE); // Do initial startup version check.
+
         // Set the texture anim for the electric effects on the collar base.
         llSetLinkTextureAnim(LINK_THIS, ANIM_ON | LOOP, 2, 32, 32, 0.0, 64.0, 20.4);
 
@@ -1062,9 +1083,10 @@ state main
                         showMenu("settings", id);
                         return;
                     }
-                    else if (mesg == "📜 Inmate #") // Inmate number select.
+                    else if (mesg == "📜 InmateID") // Inmate number select.
                     {
-                        g_iRequestKey = llHTTPRequest(g_apiURL + (string)llGetOwner(), [], "");
+                        g_settings = (g_settings & 0xFFFFFBFF); // Unset request type flag.
+                        g_requestKey = llHTTPRequest("http://rrdc.xyz/json/UUID/" + (string)llGetOwner(), [], "");
                         return;
                     }
                     else if (mesg == "✎ CharName") // Set character name.
@@ -1073,6 +1095,10 @@ state main
                             llList2String(llParseString2List(g_inmateInfo, [" "], []), 1),
                             getAvChannel(llGetOwner()));
                         return;
+                    }
+                    else if (mesg == "★ Version") // Version Check.
+                    {
+                        versionCheck(TRUE);
                     }
                     // Texture Commands.
                     // -----------------------------------------------------------------------------------------
@@ -1298,39 +1324,64 @@ state main
     // ---------------------------------------------------------------------------------------------------------
     http_response(key reqID, integer stat, list m, string body)
     {
-        if (reqID == g_iRequestKey) // We requested this?
+        if (reqID == g_requestKey) // We requested this?
         {
             body = llStringTrim(body, STRING_TRIM); // Trim and parse the response.
-            m = llJson2List(body);
 
-            integer i = 0;
-            list l = [];
-            for (i = 0; i < llGetListLength(m) && i < 9; i++) // Get all valid inmateIDs.
+            if ((g_settings & 0x00000400)) // Is it a version check response?
             {
-                string num = llJsonGetValue(llList2String(m, i), ["inmateID"]);
-                if (num != JSON_INVALID && num != JSON_NULL)
+                string v = llJsonGetValue(body, ["collarVersion"]);
+                if (v == JSON_INVALID || v == JSON_NULL)
                 {
-                    l += [num];
+                    llOwnerSay("Could not retrieve version information. Please contact staff.");
+                }
+                else if ((g_settings & 0x00000800) || g_appVersion != v) // Verbose or update needed?
+                {
+                    llOwnerSay("Current Version: " + g_appVersion + " Latest version: " + v);
+
+                    if (g_appVersion != v)
+                    {
+                        llOwnerSay("A new version is available. Please visit a collar vendor to update.");
+                    }
+                    else
+                    {
+                        llOwnerSay("You are using the latest stable version of the collar.");
+                    }
                 }
             }
+            else // Inmate number response.
+            {
+                m = llJson2List(body); // Convert to a list of objects.
 
-            if (llGetListLength(l) > 0) // If the list is non-zero in size, show a menu.
-            {
-                llDialog(llGetOwner(), 
-                    "\nWhat inmate number do you want to use?\n\nCurrent value: " + 
-                    llList2String(llParseString2List(g_inmateInfo, [" "], []), 0),
-                    [" ", " ", "↺ Settings"] + l, getAvChannel(llGetOwner())
-                );
-            }
-            else // Tell the user they have no inmate ids.
-            {
-                llInstantMessage(llGetOwner(),
-                    "No inmate numbers could be found. Please contact staff for assistance."
-                );
-                showMenu("", llGetOwner());
+                integer i = 0;
+                list l = [];
+                for (i = 0; i < llGetListLength(m) && i < 9; i++) // Get all valid inmateIDs.
+                {
+                    string num = llJsonGetValue(llList2String(m, i), ["inmateID"]);
+                    if (num != JSON_INVALID && num != JSON_NULL)
+                    {
+                        l += [num];
+                    }
+                }
+
+                if (llGetListLength(l) > 0) // If the list is non-zero in size, show a menu.
+                {
+                    llDialog(llGetOwner(), 
+                        "\nWhat inmate number do you want to use?\n\nCurrent value: " + 
+                        llList2String(llParseString2List(g_inmateInfo, [" "], []), 0),
+                        [" ", " ", "↺ Settings"] + l, getAvChannel(llGetOwner())
+                    );
+                }
+                else // Tell the user they have no inmate ids.
+                {
+                    llInstantMessage(llGetOwner(),
+                        "No inmate numbers could be found. Please contact staff for assistance."
+                    );
+                    showMenu("", llGetOwner());
+                }
             }
         }
-        g_iRequestKey = NULL_KEY;
+        g_requestKey = NULL_KEY;
     }
 
     // Controls timed effects such as blinking light and shock.
