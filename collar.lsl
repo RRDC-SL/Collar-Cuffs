@@ -128,7 +128,7 @@ versionCheck(integer verbose)
     }
     
     g_settings = (g_settings | 0x00000400); // Set request type flag.
-    g_requestKey = llHTTPRequest("http://rrdc.xyz/collar/version/stable", [], "");
+    g_requestKey = llHTTPRequest("https://rrdc.xyz/collar/version/stable", [], "");
 }
 
 // playRandomSound - Plays a random chain sound.
@@ -975,7 +975,7 @@ default
                     else if (mesg == "📜 InmateID") // Inmate number select.
                     {
                         g_settings = (g_settings & 0xFFFFFBFF); // Unset request type flag.
-                        g_requestKey = llHTTPRequest("http://rrdc.xyz/json/UUID/" + (string)llGetOwner(), [], "");
+                        g_requestKey = llHTTPRequest("https://rrdc.xyz/json/UUID/" + (string)llGetOwner(), [], "");
                         return;
                     }
                     else if (mesg == "✎ CharName") // Set character name.
