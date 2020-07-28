@@ -128,7 +128,7 @@ versionCheck(integer verbose)
     }
     
     g_settings = (g_settings | 0x00000400); // Set request type flag.
-    g_requestKey = llHTTPRequest("https://rrdc.xyz/collar/version/stable", [], "");
+    g_requestKey = llHTTPRequest("https://rrdc.xyz/gear/versions/stable", [], "");
 }
 
 // playRandomSound - Plays a random chain sound.

@@ -6,4 +6,4 @@ RewriteEngine On
 
 # URL rewrite for collar version checker.
 # ---------------------------------------------------------------------------------
-RewriteRule     ^collar/version/(.+)$   collar/versionCheck.php?channel=$1  [NC,L]
+RewriteRule     ^gear/versions/(.+)$    gear/versionCheck.php?channel=$1    [NC,L]
