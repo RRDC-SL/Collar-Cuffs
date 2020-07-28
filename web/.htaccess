@@ -1,9 +1,0 @@
-# [SGD] Collar Version Checker - Apache v1.2.0 (c) Alex Pascal @ SL.
-# ---------------------------------------------------------------------------------
-# MERGE this with existing .htaccess file. Don't overwrite or duplicate.
-
-RewriteEngine On
-
-# URL rewrite for collar version checker.
-# ---------------------------------------------------------------------------------
-RewriteRule     ^gear/versions/(.+)$    gear/versionCheck.php?channel=$1    [NC,L]
