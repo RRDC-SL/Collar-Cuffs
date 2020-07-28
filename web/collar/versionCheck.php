@@ -1,14 +1,14 @@
 <?php
-    // [SGD] Collar Version Checker - PHP v1.2.0 (c) Alex Pascal @ SL.
+    // [SGD] Version Checker - PHP v1.2.0 (c) Alex Pascal @ SL.
     // ----------------------------------------------------------------
     define("COLLAR_BETA", "1.2.0");
     define("COLLAR_STABLE", "1.2.0");
 
-    class Version {
+    class VersionReport {
         public $collarVersion;
     }
 
-    $reported = new Version();
+    $reported = new VersionReport();
     $channel = strtolower($_GET["channel"]);
 
     if ($channel == "beta") {
