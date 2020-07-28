@@ -1224,17 +1224,23 @@ default
                 {
                     llOwnerSay("Could not retrieve version information. Please contact staff.");
                 }
-                else if ((g_settings & 0x00000800) || g_appVersion != v) // Verbose or update needed?
+                else // Determine which version is the oldest.
                 {
-                    llOwnerSay("Current Version: " + g_appVersion + " Latest version: " + v);
+                    stat = (g_appVersion == llList2String(llListSort([g_appVersion, v], 1, TRUE), 0) &&
+                            g_appVersion != v);
 
-                    if (g_appVersion != v)
+                    if ((g_settings & 0x00000800) || stat) // Verbose or update required?
                     {
-                        llOwnerSay("A new version is available. Please visit a collar vendor to update.");
-                    }
-                    else
-                    {
-                        llOwnerSay("You are using the latest stable version of the collar.");
+                        llOwnerSay("Current Version: " + g_appVersion + " Latest version: " + v);
+
+                        if (stat)
+                        {
+                            llOwnerSay("A new version is available. Please visit a collar vendor to update.");
+                        }
+                        else
+                        {
+                            llOwnerSay("Your collar is up to date.");
+                        }
                     }
                 }
             }

@@ -66,7 +66,7 @@ Expected Response:
         }
     ]
 
-Request URL: http://rrdc.xyz/collar/version/<stable|rc|beta|nightly>
+Request URL: http://rrdc.xyz/collar/version/<stable|beta>
 Expected Response:
     {
         "collarVersion": "<semantic-version-number>"
