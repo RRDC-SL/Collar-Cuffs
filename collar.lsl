@@ -1,4 +1,4 @@
-// [SGD] RRDC Collar v1.1.3 "Bolvangar" - Copyright 2020 Alex Pascal (Alex Carpenter) @ Second Life.
+// [SGD] RRDC Collar v1.2.0 (c) 2020 Alex Pascal (Alex Carpenter) @ Second Life.
 // ---------------------------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
 //  If a copy of the MPL was not distributed with this file, You can obtain one at 
@@ -7,8 +7,8 @@
 
 // System Configuration Variables
 // ---------------------------------------------------------------------------------------------------------
-string  g_apiURL      = "http://rrdc.xyz/json/UUID/";       // URL for the inmate number API request.
-integer g_appChan     = -89039937;                          // The channel for this application set.
+string  g_appVersion  = "1.2.0";                // The current software version for the collar.
+integer g_appChan     = -89039937;              // The channel for this application set.
 
 // =========================================================================================================
 // CAUTION: Modifying anything below this line may cause issues. Edit at your own risk!
@@ -51,14 +51,12 @@ string  g_shacklePartTarget;                    // Key of the target prim for sh
 
 // Data Store Variables.
 // ---------------------------------------------------------------------------------------------------------
-key     g_iRequestKey;                          // Inmate numbers request key.
-string  g_inmateNum;                            // The current character's inmate number.
+key     g_requestKey;                           // Inmate numbers request key.
+string  g_inmateInfo;                           // The current character's inmate number and name.
 string  g_animState;                            // Current AO animation state.
 list    g_animList;                             // List of currently playing (base) anim names.
 list    g_avList;                               // Tracks leash/chaingang enabled avatars.
 list    g_curMenus;                             // Tracks current menu by user.
-list    g_LGTags;                               // List of current LockGuard tags.
-list    g_LMTags;                               // List of current LockMeister tags.
 
 // Toggle Switch Bitfield.
 // ---------------------------------------------------------------------------------------------------------
@@ -74,6 +72,8 @@ list    g_LMTags;                               // List of current LockMeister t
 // 0x00000080    0xFFFFFF7F    TRUE when the wearer is leashed to something.
 // 0x00000100    0xFFFFFEFF    TRUE when chain walk sounds are muted.
 // 0x00000200    0xFFFFFDFF    TRUE when shock cooldown is active.
+// 0x00000400    0xFFFFFBFF    TRUE when requestKey is a version check.
+// 0x00000800    0xFFFFF7FF    TRUE when version check is supposed to be verbose.
 // ---------------------------------------------------------------------------------------------------------
 integer g_settings;
 // ---------------------------------------------------------------------------------------------------------
@@ -112,6 +112,23 @@ float fMax(float f1, float f2)
 integer inRange(key object)
 {
     return (llVecDist(llGetPos(), llList2Vector(llGetObjectDetails(object, [OBJECT_POS]), 0)) < 6.0);
+}
+
+// versionCheck - Checks the current version against a remote server.
+// ---------------------------------------------------------------------------------------------------------
+versionCheck(integer verbose)
+{
+    if (verbose)
+    {
+        g_settings = (g_settings | 0x00000800);
+    }
+    else
+    {
+        g_settings = (g_settings & 0xFFFFF7FF);
+    }
+    
+    g_settings = (g_settings | 0x00000400); // Set request type flag.
+    g_requestKey = llHTTPRequest("https://rrdc.xyz/gear/versions/stable", [], "");
 }
 
 // playRandomSound - Plays a random chain sound.
@@ -181,19 +198,6 @@ leashParticles(integer on)
     }
     else // If LG particles are to be turned on, turn them on.
     {
-        // Particle bitfield defaults.
-        integer nBitField = (PSYS_PART_TARGET_POS_MASK | PSYS_PART_FOLLOW_VELOCITY_MASK);
-    
-        if(g_partGravity == 0) // Add linear mask if gravity is not zero.
-        {
-            nBitField = (nBitField | PSYS_PART_TARGET_LINEAR_MASK);
-        }
-
-        if(g_partFollow) // Add follow mask if flag is set.
-        {
-            nBitField = (nBitField | PSYS_PART_FOLLOW_SRC_MASK);
-        }
-        
         llLinkParticleSystem(g_leashLink,
         [
             PSYS_SRC_PATTERN,           PSYS_SRC_PATTERN_DROP,
@@ -206,7 +210,10 @@ leashParticles(integer on)
             PSYS_PART_START_SCALE,      <g_partSizeX, g_partSizeY, 0.0>,
             PSYS_SRC_ACCEL,             <0.0, 0.0, (g_partGravity * -1.0)>,
             PSYS_SRC_TARGET_KEY,        (key)g_leashPartTarget,
-            PSYS_PART_FLAGS,            nBitField
+            PSYS_PART_FLAGS,            (PSYS_PART_TARGET_POS_MASK                           |
+                                         PSYS_PART_FOLLOW_VELOCITY_MASK                      |
+                                         PSYS_PART_TARGET_LINEAR_MASK * (g_partGravity == 0) |
+                                         PSYS_PART_FOLLOW_SRC_MASK * (g_partFollow == TRUE))
         ]);
     }
 }
@@ -224,19 +231,6 @@ shackleParticles(integer on)
     }
     else // Turn the inner particle system on.
     {
-        // Particle bitfield defaults.
-        integer nBitField = (PSYS_PART_TARGET_POS_MASK | PSYS_PART_FOLLOW_VELOCITY_MASK);
-    
-        if(0.3 == 0) // Add linear mask if gravity is not zero.
-        {
-            nBitField = (nBitField | PSYS_PART_TARGET_LINEAR_MASK);
-        }
-
-        if(TRUE) // Add follow mask if flag is set.
-        {
-            nBitField = (nBitField | PSYS_PART_FOLLOW_SRC_MASK);
-        }
-        
         llLinkParticleSystem(g_shackleLink,
         [
             PSYS_SRC_PATTERN,           PSYS_SRC_PATTERN_DROP,
@@ -247,9 +241,11 @@ shackleParticles(integer on)
             PSYS_SRC_TEXTURE,           "dbeee6e7-4a63-9efe-125f-ceff36ceeed2", // thinchain
             PSYS_PART_START_COLOR,      <1.0, 1.0, 1.0>,
             PSYS_PART_START_SCALE,      <0.04, 0.04, 0.0>,
-            PSYS_SRC_ACCEL,             <0.0, 0.0, (0.3 * -1.0)>,
+            PSYS_SRC_ACCEL,             <0.0, 0.0, -0.3>,
             PSYS_SRC_TARGET_KEY,        (key)g_shacklePartTarget,
-            PSYS_PART_FLAGS,            nBitField
+            PSYS_PART_FLAGS,            (PSYS_PART_TARGET_POS_MASK      |
+                                         PSYS_PART_FOLLOW_VELOCITY_MASK |
+                                         PSYS_PART_FOLLOW_SRC_MASK)
         ]);
     }
 }
@@ -341,6 +337,45 @@ toggleMode(integer mode)
     }
 }
 
+// updateInmateInfo - Sets inmate info or defaults if not present.
+// ---------------------------------------------------------------------------------------------------------
+updateInmateInfo(string inmateNum, string inmateName)
+{
+    list l = llParseString2List(llBase64ToString(llList2String(
+        llGetLinkPrimitiveParams(g_leashLink, [PRIM_DESC]), 0)), [" "], []);
+    
+    if (((integer)inmateNum) > 0 && llStringLength(inmateNum) == 5) // Set inmate number.
+    {
+        l = llListReplaceList(l, [inmateNum], 0, 0);
+    }
+    else if (((integer)llList2String(l, 0)) <= 0 || llStringLength(llList2String(l, 0)) != 5)
+    {
+        l = llListReplaceList(l, ["00000"], 0, 0);
+
+        llOwnerSay( // Null inmate number nag message.
+            "Warning: You must assign an Inmate ID to your collar or certain features may not work.\n" +
+            "To fix this, touch your collar and visit: 📜 Settings -> 📜 InmateID"
+        );
+    }
+
+    if (inmateName != "") // Set inmate name.
+    {
+        l = llListReplaceList(l, [inmateName], 1, 1);
+    }
+    else if (llList2String(l, 1) == "")
+    {
+        l = llListReplaceList(l, ["(No Name)"], 1, 1);
+    }
+
+    // Replace spaces in charname with special characters to ensure parse compatibility.
+    l = llListReplaceList(l,
+        [llDumpList2String(llParseString2List(llList2String(l, 1), [" "], []), " ")], 1, 1);
+
+    llSetLinkPrimitiveParamsFast(g_leashLink, [ // Save updated inmate info.
+        PRIM_DESC, llStringToBase64(g_inmateInfo = llDumpList2String(l, " "))
+    ]);
+}
+
 // giveCharSheet - Gives a copy of the character sheet to the user, if present.
 // ---------------------------------------------------------------------------------------------------------
 giveCharSheet(key user)
@@ -356,16 +391,11 @@ giveCharSheet(key user)
                 " has taken a copy of your character sheet.");
 
             llGiveInventory(user, note); // Offer notecard.
-        }
-        else
-        {
-            llInstantMessage(user, "No character sheet is available.");
+            return;
         }
     }
-    else // No notecard present.
-    {
-        llInstantMessage(user, "No character sheet is available.");
-    }
+
+    llInstantMessage(user, "No character sheet is available.");
 }
 
 // showMenu - Given a menu name string, shows the appropriate menu.
@@ -413,19 +443,13 @@ showMenu(string menu, key user)
 
     string text = "\n\nChoose an option:";
     list buttons = [];
-    if (menu == "main") // Show main menu. ▩☐☒↺☠☯📜✖
+    if (menu == "main") // Show main menu. ▩☐☒↺☠☯📜★✖
     {
-        // Wearer Menu. (Owner Only)
+        // Wearer Menu. (Others see this minus Settings)
         // -----------------------------------------------
         // ☯ CharSheet     ☠ Shock        📜 Poses
         // ☐ ChainGang     ☐ AnkleChain    ☐ Shackled
         // ☐ Leash         📜 Settings     ✖ Close
-        //
-        // Staff Menu. (Within 6m)
-        // -----------------------------------------------
-        // ☯ CharSheet     ☠ Shock        📜 Poses
-        // ☐ ChainGang     ☐ AnkleChain    ☐ Shackled
-        // ☐ Leash                         ✖ Close
 
         text = "Main Menu" + text;
 
@@ -484,7 +508,7 @@ showMenu(string menu, key user)
     }
     else if (menu == "settings") // Settings menu.
     {
-        buttons = [" ", " ", "↺ Main", "📜 Inmate #", "📜 Textures"];
+        buttons = ["✎ CharName", "★ Version", "↺ Main", "📜 InmateID", "📜 Textures"];
 
         if (!(g_settings & 0x00000100))
         {
@@ -504,160 +528,75 @@ showMenu(string menu, key user)
     llDialog(user, text, buttons, getAvChannel(llGetOwner()));
 }
 
-// Make sure we have permissions before we allow anything to happen.
+// The main event state/thread of the collar program.
 // ---------------------------------------------------------------------------------------------------------
 default
 {
+    // Initialize collar. Stage 1.
+    // -----------------------------------------------------------------------------------------------------
     state_entry()
     {
-        llRequestPermissions(llGetOwner(), 
+        llRequestPermissions(llGetOwner(),
             (PERMISSION_TAKE_CONTROLS | PERMISSION_TRIGGER_ANIMATION)
         );
     }
 
+    // Initialize collar. Stage 2.
+    // -----------------------------------------------------------------------------------------------------
     run_time_permissions(integer perm)
     {
         if (perm & (PERMISSION_TAKE_CONTROLS | PERMISSION_TRIGGER_ANIMATION))
         {
-            state main;
-        }
-    }
+            versionCheck(FALSE); // Do initial startup version check.
 
-    on_rez(integer param) // Prevent getting stuck in default state.
-    {
-        llResetScript();
-    }
-}
+            // Set the texture anim for the electric effects on the collar base.
+            llSetLinkTextureAnim(LINK_THIS, ANIM_ON | LOOP, 2, 32, 32, 0.0, 64.0, 20.4);
 
-// Main state is where everything happens once we have perms.
-// ---------------------------------------------------------------------------------------------------------
-state main
-{
-    // Initialize collar.
-    // -----------------------------------------------------------------------------------------------------
-    state_entry()
-    {
-        // Set the texture anim for the electric effects on the collar base.
-        llSetLinkTextureAnim(LINK_THIS, ANIM_ON | LOOP, 2, 32, 32, 0.0, 64.0, 20.4);
-
-        integer i; // Find the prims we will work with.
-        string tag;
-        for (i = 1; i <= llGetNumberOfPrims(); i++)
-        {
-            tag = llList2String(llGetLinkPrimitiveParams(i, [PRIM_NAME]), 0);
-            if (tag == "powerCore")
+            integer i; // Find the prims we will work with.
+            string tag;
+            for (i = 1; i <= llGetNumberOfPrims(); i++)
             {
-                // Set texture anim for the power core.
-                llSetLinkTextureAnim(i, ANIM_ON | LOOP, ALL_SIDES, 20, 20, 0.0, 64.0, 30.4);
-            }
-            else if (tag == "LED")
-            {
-                g_ledLink = i;
-            }
-            else if (tag == "leashingPoint")
-            {
-                g_leashLink = i;
-
-                // Retrieve stored inmate number.
-                g_inmateNum = llList2String(llGetLinkPrimitiveParams(i, [PRIM_DESC]), 0);
-                if (((integer)g_inmateNum) <= 0 || llStringLength(g_inmateNum) != 5)
+                tag = llList2String(llGetLinkPrimitiveParams(i, [PRIM_NAME]), 0);
+                if (tag == "powerCore")
                 {
-                    g_inmateNum = "00000";
+                    // Set texture anim for the power core.
+                    llSetLinkTextureAnim(i, ANIM_ON | LOOP, ALL_SIDES, 20, 20, 0.0, 64.0, 30.4);
+                }
+                else if (tag == "LED")
+                {
+                    g_ledLink = i;
+                }
+                else if (tag == "leashingPoint")
+                {
+                    g_leashLink = i;
+                }
+                else if (tag == "chainToShacklesPoint")
+                {
+                    g_shackleLink = i;
                 }
             }
-            else if (tag == "chainToShacklesPoint")
+
+            updateInmateInfo("", ""); // Update inmate info from link description.
+
+            llMinEventDelay(0.2); // Slow events to reduce lag.
+
+            if (g_shackleLink <= 0 || g_leashLink <= 0)
             {
-                g_shackleLink = i;
+                llOwnerSay("FATAL: Missing chain emitters!");
+                return;
             }
-        }
 
-        // Parse the description field for potential LM tags.
-        list l = llParseString2List(llGetObjectDesc(),[":"],[]);
-        
-        if(l == []) // If we have ZERO config information, make a guess based on attach point.
-        {
-            l = llList2List(["","collar","thead","lblade","rblade","lhand","rhand","llcuff",
-                            "rlcuff","collar","pelvis","lbit","rbit","","","","","nose",
-                            "rbiceps","rcuff","lbiceps","lcuff","rfbelt","rtigh","rlcuff",
-                            "lfbelt","ltigh","llcuff","fbelt","lnipple","rnipple","","","",
-                            "","","","","","collar","fbelt"],
-                llGetAttached(),llGetAttached());
-        }
+            resetParticles();
+            shackleParticles(FALSE); // Stop any particle effects and init.
+            leashParticles(FALSE);
 
-        // List of Lockmeister IDs which have LockGuard equivalents.
-        // ------------------------------------------------------------------------------------
-        list lmID = ["rcuff","rbiceps","lbiceps","lcuff","lblade","rblade","rnipple",
-                    "lnipple","rtigh","ltigh","rlcuff","llcuff","pelvis","fbelt","bbelt",
-                    "rcollar","lcollar","thead","collar","lbit","rbit","nose","bcollar",
-                    "back"];
+            llListen(-8888,"",NULL_KEY,""); // Open up LockGuard and Lockmeister listens.
+            llListen(-9119,"",NULL_KEY,"");
 
-        // List of LockGuard IDs which correspond to the Lockmeister IDs.
-        //  Multiples are separated by a bar |.
-        // ------------------------------------------------------------------------------------
-        list lgID = ["rightwrist|wrists|allfour","rightupperarm|arms","leftupperarm|arms",
-                    "leftwrist|wrists|allfour","harnessleftshoulderloop",
-                    "harnessrightshoulderloop","rightnipplering|nipples",
-                    "leftnipplering|nipples","rightupperthigh|thighs","leftupperthigh|thighs",
-                    "rightankle|ankles|allfour","leftankle|ankles|allfour",
-                    "clitring|cockring|ballring","frontbeltloop","backbeltloop",
-                    "collarrightloop","collarleftloop","topheadharness", "collarfrontloop",
-                    "leftgag","rightgag","nosering","collarbackloop","harnessbackloop"];
-        
-        integer j; // Parse all the LM tags found.
-        list tList;
-        for(i = 0; i < llGetListLength(l); i++)
-        {
-            tag = llToLower(llStringTrim(llList2String(l,i), STRING_TRIM)); // Clean tag name.
+            llListen(getAvChannel(llGetOwner()), "", "", ""); // Open collar/cuffs avChannel.
             
-            j = llListFindList(lmID, [tag]);
-            if (j > -1) // LM tag. Add if not already present.
-            {
-                if (llListFindList(g_LMTags, [tag]) <= -1)
-                {
-                    g_LMTags += [tag];
-                }
-
-                // Add corresponding LG tags, if not present.
-                tList = llParseString2List(llList2String(lgID, j), ["|"], []);
-                if (llListFindList(g_LGTags, [llList2String(tList, 0)]) <= -1)
-                {
-                    g_LGTags += tList;
-                }
-            }
+            llSetTimerEvent(0.2); // Start the timer.
         }
-
-        llMinEventDelay(0.2); // Slow events to reduce lag.
-
-        if (g_LMTags == [] || g_shackleLink <= 0 || g_leashLink <= 0)
-        {
-            llOwnerSay("FATAL: Unknown anchor and/or missing chain emitters!");
-            return;
-        }
-
-        resetParticles();
-        shackleParticles(FALSE); // Stop any particle effects and init.
-        leashParticles(FALSE);
-
-        llTakeControls( // Initial take of controls in passthrough, just to be safe.
-                        CONTROL_FWD |
-                        CONTROL_BACK |
-                        CONTROL_LEFT |
-                        CONTROL_RIGHT |
-                        CONTROL_ROT_LEFT |
-                        CONTROL_ROT_RIGHT |
-                        CONTROL_UP |
-                        CONTROL_DOWN |
-                        CONTROL_LBUTTON |
-                        CONTROL_ML_LBUTTON,
-                        FALSE, TRUE
-        );
-
-        llListen(-8888,"",NULL_KEY,""); // Open up LockGuard and Lockmeister listens.
-        llListen(-9119,"",NULL_KEY,"");
-
-        llListen(getAvChannel(llGetOwner()), "", "", ""); // Open collar/cuffs avChannel.
-        
-        llSetTimerEvent(0.2); // Start the timer.
     }
 
     // Reset the script on rez.
@@ -690,7 +629,7 @@ state main
                     if (llToLower(llList2String(l, 0)) == "inmatequery") // inmatequery <user-key>
                     {
                         llRegionSayTo(id, g_appChan, "inmatereply " + // inmatereply <user-key> <inmate-number>
-                            (string)llGetOwner() + " " + g_inmateNum
+                            (string)llGetOwner() + " " + g_inmateInfo
                         );
                     }
                     else if (llToLower(llList2String(l, 0)) == "getmenu") // getmenu <user-key>
@@ -698,7 +637,7 @@ state main
                         showMenu("", llGetOwnerKey(id)); // Blank menu stops charsheet spam when out of range.
                     }
                 }
-                else if (llListFindList(g_LGTags, [llList2String(l, 1)]) > -1) // LG tag match.
+                else if (llList2String(l, 1) == "collarfrontloop") // LG tag match.
                 {
                     name = llToLower(llList2String(l, 0));
                     if (name == "unlink") // unlink collarfrontloop <leash|shackle>
@@ -1033,10 +972,22 @@ state main
                         showMenu("settings", id);
                         return;
                     }
-                    else if (mesg == "📜 Inmate #") // Inmate number select.
+                    else if (mesg == "📜 InmateID") // Inmate number select.
                     {
-                        g_iRequestKey = llHTTPRequest(g_apiURL + (string)llGetOwner(), [], "");
+                        g_settings = (g_settings & 0xFFFFFBFF); // Unset request type flag.
+                        g_requestKey = llHTTPRequest("https://rrdc.xyz/json/UUID/" + (string)llGetOwner(), [], "");
                         return;
+                    }
+                    else if (mesg == "✎ CharName") // Set character name.
+                    {
+                        llTextBox(id, "\nWhat is your inmate character's name?\n\nCurrent value: " +
+                            llList2String(llParseString2List(g_inmateInfo, [" "], []), 1),
+                            getAvChannel(llGetOwner()));
+                        return;
+                    }
+                    else if (mesg == "★ Version") // Version Check.
+                    {
+                        versionCheck(TRUE);
                     }
                     // Texture Commands.
                     // -----------------------------------------------------------------------------------------
@@ -1115,9 +1066,17 @@ state main
                     // -----------------------------------------------------------------------------------------
                     else if (((integer)mesg) > 0 && llStringLength(mesg) == 5)
                     {
-                        g_inmateNum = mesg;
-                        llSetLinkPrimitiveParamsFast(g_leashLink, [PRIM_DESC, g_inmateNum]);
-                        llOwnerSay("Your inmate number has been set to: " + g_inmateNum);
+                        updateInmateInfo(mesg, ""); // Update inmate number.
+                        llOwnerSay("Your inmate number has been set to: " +
+                            llList2String(llParseString2List(g_inmateInfo, [" "], []), 0));
+                    }
+                    // Set Inmate Name.
+                    // -----------------------------------------------------------------------------------------
+                    else if (llStringLength(mesg) <= 30)
+                    {
+                        updateInmateInfo("", llStringTrim(mesg, STRING_TRIM));
+                        llOwnerSay("Your character name has been set to: " +
+                            llList2String(llParseString2List(g_inmateInfo, [" "], []), 1));
                     }
                 }
             }
@@ -1127,13 +1086,13 @@ state main
         // -----------------------------------------------------------------------------------------------------
         else if(chan == -8888 && llGetSubString(mesg, 0, 35) == ((string)llGetOwner()))
         {
-            if(llListFindList(g_LMTags, [llGetSubString(mesg, 36, -1)]) > -1)
+            if(llGetSubString(mesg, 36, -1) == "collar") // Talking to us?
             {
                 toggleMode(FALSE);
                 llRegionSayTo(id, -8888, mesg + " ok");
             }
-            else if (llGetSubString(mesg, 36, 54) == "|LMV2|RequestPoint|" &&      // LMV2.
-                     llListFindList(g_LMTags, [llGetSubString(mesg, 55, -1)]) > -1)
+            else if (llGetSubString(mesg, 36, 54) == "|LMV2|RequestPoint|" && // LMV2.
+                     llGetSubString(mesg, 55, -1) == "collar")
             {
                 llRegionSayTo(id, -8888, ((string)llGetOwner()) + "|LMV2|ReplyPoint|" + 
                     llGetSubString(mesg, 55, -1) + "|" + ((string)llGetLinkKey(g_leashLink))
@@ -1147,7 +1106,7 @@ state main
             list tList = llParseString2List(mesg, [" "], []);
             
             // lockguard [avatarKey/ownerKey] [item] [command] [variable(s)] 
-            if(llListFindList(g_LGTags, [llList2String(tList, 2)]) > -1 || llList2String(tList, 2) == "all")
+            if(llList2String(tList, 2) == "collarfrontloop" || llList2String(tList, 2) == "all")
             {
                 integer i = 3; // Start at the first command position and parse the commands.
                 while(i < llGetListLength(tList))
@@ -1219,7 +1178,7 @@ state main
                     else if(name == "ping")
                     {
                         llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " " +
-                            llList2String(g_LGTags, 0) + " okay"
+                            "collarfrontloop  okay"
                         );
                         i++;
                     }
@@ -1228,13 +1187,13 @@ state main
                         if((g_settings & 0x00000004))
                         {
                             llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " " + 
-                                llList2String(g_LGTags, 0) + " no"
+                                "collarfrontloop no"
                             );
                         }
                         else
                         {
                             llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " " + 
-                                llList2String(g_LGTags, 0) + " yes"
+                                "collarfrontloop yes"
                             );
                         }
                         i++;
@@ -1254,38 +1213,70 @@ state main
     // ---------------------------------------------------------------------------------------------------------
     http_response(key reqID, integer stat, list m, string body)
     {
-        if (reqID == g_iRequestKey) // We requested this?
+        if (reqID == g_requestKey) // We requested this?
         {
             body = llStringTrim(body, STRING_TRIM); // Trim and parse the response.
-            m = llJson2List(body);
 
-            integer i = 0;
-            list l = [];
-            for (i = 0; i < llGetListLength(m) && i < 9; i++) // Get all valid inmateIDs.
+            if ((g_settings & 0x00000400)) // Is it a version check response?
             {
-                string num = llJsonGetValue(llList2String(m, i), ["inmateID"]);
-                if (num != JSON_INVALID && num != JSON_NULL)
+                string v = llJsonGetValue(body, ["collarVersion"]);
+                if (v == JSON_INVALID || v == JSON_NULL)
                 {
-                    l += [num];
+                    llOwnerSay("Could not retrieve version information. Please contact staff.");
+                }
+                else // Determine which version is the oldest.
+                {
+                    stat = (g_appVersion == llList2String(llListSort([g_appVersion, v], 1, TRUE), 0) &&
+                            g_appVersion != v);
+
+                    if ((g_settings & 0x00000800) || stat) // Verbose or update required?
+                    {
+                        llOwnerSay("Current Version: " + g_appVersion + " Latest version: " + v);
+
+                        if (stat)
+                        {
+                            llOwnerSay("A new version is available. Please visit a collar vendor to update.");
+                        }
+                        else
+                        {
+                            llOwnerSay("Your collar is up to date.");
+                        }
+                    }
                 }
             }
+            else // Inmate number response.
+            {
+                m = llJson2List(body); // Convert to a list of objects.
 
-            if (llGetListLength(l) > 0) // If the list is non-zero in size, show a menu.
-            {
-                llDialog(llGetOwner(), 
-                    "\nWhat inmate number do you want to use?\n\nCurrent value: " + (string)g_inmateNum, 
-                    [" ", " ", "↺ Settings"] + l, getAvChannel(llGetOwner())
-                );
-            }
-            else // Tell the user they have no inmate ids.
-            {
-                llInstantMessage(llGetOwner(),
-                    "No inmate numbers could be found. Please contact staff for assistance."
-                );
-                showMenu("", llGetOwner());
+                integer i = 0;
+                list l = [];
+                for (i = 0; i < llGetListLength(m) && i < 9; i++) // Get all valid inmateIDs.
+                {
+                    string num = llJsonGetValue(llList2String(m, i), ["inmateID"]);
+                    if (num != JSON_INVALID && num != JSON_NULL)
+                    {
+                        l += [num];
+                    }
+                }
+
+                if (llGetListLength(l) > 0) // If the list is non-zero in size, show a menu.
+                {
+                    llDialog(llGetOwner(), 
+                        "\nWhat inmate number do you want to use?\n\nCurrent value: " + 
+                        llList2String(llParseString2List(g_inmateInfo, [" "], []), 0),
+                        [" ", " ", "↺ Settings"] + l, getAvChannel(llGetOwner())
+                    );
+                }
+                else // Tell the user they have no inmate ids.
+                {
+                    llInstantMessage(llGetOwner(),
+                        "No inmate numbers could be found. Please contact staff for assistance."
+                    );
+                    showMenu("", llGetOwner());
+                }
             }
         }
-        g_iRequestKey = NULL_KEY;
+        g_requestKey = NULL_KEY;
     }
 
     // Controls timed effects such as blinking light and shock.

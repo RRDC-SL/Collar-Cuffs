@@ -1,4 +1,4 @@
-# [SGD] RRDC Collar and Cuffs v1.1.2 "Bolvangar" - User Manual #
+# [SGD] RRDC Collar and Cuffs v1.2.0 - User Manual #
 
 ---------------------------------------------------------------------------------------------------
 
@@ -88,6 +88,17 @@ Allows you to select from the inmate numbers associated with your account.
 * You can only select inmate numbers you have registered with the sim database.
 * The inmate number you select can be queried by scripts in-world.
 
+## CharName ##
+Allows you to set the name of the character associated with your inmate number.
+* Only you (the wearer) can access this option.
+* Name field is limited to 30 characters in length.
+* The character name you specify can be queried by scripts in-world.
+
+## Version ##
+Displays the current version of the collar scripts and checks for updates.
+* Only you (the wearer) can access this option.
+* If a new version is available, you will be notified about it.
+
 ## Textures ##
 Allows you to select one of six different metal textures for your collar and cuffs.
 * Only you (the wearer) can access this menu.
@@ -95,7 +106,7 @@ Allows you to select one of six different metal textures for your collar and cuf
 
 ## Walk Sound ##
 Toggles whether to play chain sound effects when you walk with them enabled in any form.
-* Only you (the wearer) can access this menu.
+* Only you (the wearer) can access this option.
 * Sounds play when you start and stop moving while any chains are active.
 * This does not turn off sound effects played on toggling of chains or shock feature.
 

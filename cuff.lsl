@@ -1,4 +1,4 @@
-// [SGD] RRDC Cuffs v1.1.0 "Bolvangar" - Copyright 2020 Alex Pascal (Alex Carpenter).
+// [SGD] RRDC Cuffs v1.2.0 - Copyright 2020 Alex Pascal (Alex Carpenter).
 //  Based on combined Lockmeister and LockGuard script by Felis Darwin.
 // ----------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
@@ -74,19 +74,6 @@ outerParticles(integer on)
     }
     else // If LG particles are to be turned on, turn them on.
     {
-        // Particle bitfield defaults.
-        integer nBitField = (PSYS_PART_TARGET_POS_MASK | PSYS_PART_FOLLOW_VELOCITY_MASK);
-    
-        if(g_partGravity == 0) // Add linear mask if gravity is not zero.
-        {
-            nBitField = (nBitField | PSYS_PART_TARGET_LINEAR_MASK);
-        }
-
-        if(g_partFollow) // Add follow mask if flag is set.
-        {
-            nBitField = (nBitField | PSYS_PART_FOLLOW_SRC_MASK);
-        }
-        
         llLinkParticleSystem(g_outerLink,
         [
             PSYS_SRC_PATTERN,           PSYS_SRC_PATTERN_DROP,
@@ -99,7 +86,10 @@ outerParticles(integer on)
             PSYS_PART_START_SCALE,      <g_partSizeX, g_partSizeY, 0.0>,
             PSYS_SRC_ACCEL,             <0.0, 0.0, (g_partGravity * -1.0)>,
             PSYS_SRC_TARGET_KEY,        (key)g_outerPartTarget,
-            PSYS_PART_FLAGS,            nBitField
+            PSYS_PART_FLAGS,            (PSYS_PART_TARGET_POS_MASK                           |
+                                         PSYS_PART_FOLLOW_VELOCITY_MASK                      |
+                                         PSYS_PART_TARGET_LINEAR_MASK * (g_partGravity == 0) |
+                                         PSYS_PART_FOLLOW_SRC_MASK * (g_partFollow == TRUE))
         ]);
     }
 }
@@ -117,19 +107,6 @@ innerParticles(integer on)
     }
     else // Turn the inner particle system on.
     {
-        // Particle bitfield defaults.
-        integer nBitField = (PSYS_PART_TARGET_POS_MASK | PSYS_PART_FOLLOW_VELOCITY_MASK);
-    
-        if(0.3 == 0) // Add linear mask if gravity is not zero.
-        {
-            nBitField = (nBitField | PSYS_PART_TARGET_LINEAR_MASK);
-        }
-
-        if(TRUE) // Add follow mask if flag is set.
-        {
-            nBitField = (nBitField | PSYS_PART_FOLLOW_SRC_MASK);
-        }
-        
         llLinkParticleSystem(g_innerLink,
         [
             PSYS_SRC_PATTERN,           PSYS_SRC_PATTERN_DROP,
@@ -140,9 +117,11 @@ innerParticles(integer on)
             PSYS_SRC_TEXTURE,           "dbeee6e7-4a63-9efe-125f-ceff36ceeed2", // thinchain.
             PSYS_PART_START_COLOR,      <1.0, 1.0, 1.0>,
             PSYS_PART_START_SCALE,      <0.04, 0.04, 0.0>,
-            PSYS_SRC_ACCEL,             <0.0, 0.0, (0.3 * -1.0)>,
+            PSYS_SRC_ACCEL,             <0.0, 0.0, -0.3>,
             PSYS_SRC_TARGET_KEY,        (key)g_innerPartTarget,
-            PSYS_PART_FLAGS,            nBitField
+            PSYS_PART_FLAGS,            (PSYS_PART_TARGET_POS_MASK      |
+                                         PSYS_PART_FOLLOW_VELOCITY_MASK |
+                                         PSYS_PART_FOLLOW_SRC_MASK)
         ]);
     }
 }
@@ -220,25 +199,6 @@ default
                              "","","","","","collar","fbelt"],
                 llGetAttached(),llGetAttached());
         }
-
-        // List of Lockmeister IDs which have LockGuard equivalents.
-        // ------------------------------------------------------------------------------------
-        list lmID = ["rcuff","rbiceps","lbiceps","lcuff","lblade","rblade","rnipple",
-                     "lnipple","rtigh","ltigh","rlcuff","llcuff","pelvis","fbelt","bbelt",
-                     "rcollar","lcollar","thead","collar","lbit","rbit","nose","bcollar",
-                     "back"];
-
-        // List of LockGuard IDs which correspond to the Lockmeister IDs.
-        //  Multiples are separated by a bar |.
-        // ------------------------------------------------------------------------------------
-        list lgID = ["rightwrist|wrists|allfour","rightupperarm|arms","leftupperarm|arms",
-                     "leftwrist|wrists|allfour","harnessleftshoulderloop",
-                     "harnessrightshoulderloop","rightnipplering|nipples",
-                     "leftnipplering|nipples","rightupperthigh|thighs","leftupperthigh|thighs",
-                     "rightankle|ankles|allfour","leftankle|ankles|allfour",
-                     "clitring|cockring|ballring","frontbeltloop","backbeltloop",
-                     "collarrightloop","collarleftloop","topheadharness", "collarfrontloop",
-                     "leftgag","rightgag","nosering","collarbackloop","harnessbackloop"];
         
         integer j; // Parse all the LM tags found.
         list tList;
@@ -246,7 +206,12 @@ default
         {
             tag = llToLower(llStringTrim(llList2String(l,i), STRING_TRIM)); // Clean tag name.
             
-            j = llListFindList(lmID, [tag]);
+            j = llListFindList(
+                ["rcuff","rbiceps","lbiceps","lcuff","lblade","rblade","rnipple",
+                "lnipple","rtigh","ltigh","rlcuff","llcuff","pelvis","fbelt","bbelt",
+                "rcollar","lcollar","thead","collar","lbit","rbit","nose","bcollar",
+                "back"], [tag]
+            );
             if (j > -1) // LM tag. Add if not already present.
             {
                 if (llListFindList(g_LMTags, [tag]) <= -1)
@@ -255,7 +220,16 @@ default
                 }
 
                 // Add corresponding LG tags, if not present.
-                tList = llParseString2List(llList2String(lgID, j), ["|"], []);
+                tList = llParseString2List(llList2String(
+                    ["rightwrist|wrists|allfour","rightupperarm|arms","leftupperarm|arms",
+                    "leftwrist|wrists|allfour","harnessleftshoulderloop",
+                    "harnessrightshoulderloop","rightnipplering|nipples",
+                    "leftnipplering|nipples","rightupperthigh|thighs","leftupperthigh|thighs",
+                    "rightankle|ankles|allfour","leftankle|ankles|allfour",
+                    "clitring|cockring|ballring","frontbeltloop","backbeltloop",
+                    "collarrightloop","collarleftloop","topheadharness", "collarfrontloop",
+                    "leftgag","rightgag","nosering","collarbackloop","harnessbackloop"], j), ["|"], []
+                );
                 if (llListFindList(g_LGTags, [llList2String(tList, 0)]) <= -1)
                 {
                     g_LGTags += tList;
