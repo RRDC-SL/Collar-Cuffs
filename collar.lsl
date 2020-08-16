@@ -576,6 +576,8 @@ default
                 }
             }
 
+            llTakeControls(CONTROL_UP, TRUE, TRUE); // Ensure we always can run.
+
             updateInmateInfo("", ""); // Update inmate info from link description.
 
             llMinEventDelay(0.2); // Slow events to reduce lag.
@@ -1318,7 +1320,7 @@ default
                             CONTROL_DOWN |
                             CONTROL_LBUTTON |
                             CONTROL_ML_LBUTTON,
-                            FALSE, TRUE
+                            TRUE, TRUE
             );
         }
         else if (g_shockCount == -1) // Release cooldown.
