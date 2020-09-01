@@ -450,6 +450,7 @@ showMenu(string menu, key user)
         // ☯ CharSheet     ☠ Shock        📜 Poses
         // ☐ ChainGang     ☐ AnkleChain    ☐ Shackled
         // ☐ Leash         📜 Settings     ✖ Close
+        //                 ✎ Reports
 
         text = "Main Menu" + text;
 
@@ -459,7 +460,7 @@ showMenu(string menu, key user)
         }
         else // Blank and close button for others.
         {
-            buttons = [" ", "✖ Close"];
+            buttons = ["☎ Reports", "✖ Close"];
         }
 
         if ((g_settings & 0x00000080) && g_leashMode == "leashanchor") // Leash toggle.
@@ -508,7 +509,8 @@ showMenu(string menu, key user)
     }
     else if (menu == "settings") // Settings menu.
     {
-        buttons = ["✎ CharName", "★ Version", "↺ Main", "📜 InmateID", "📜 Textures"];
+        buttons = [" ", " ", "↺ Main", "✎ CharName", "★ Version", "☎ Reports",
+                   "📜 InmateID", "📜 Textures"];
 
         if (!(g_settings & 0x00000100))
         {
@@ -575,8 +577,6 @@ default
                     g_shackleLink = i;
                 }
             }
-
-            llTakeControls(CONTROL_UP, TRUE, TRUE); // Ensure we always can run.
 
             updateInmateInfo("", ""); // Update inmate info from link description.
 
@@ -734,9 +734,15 @@ default
             }
             else if (inRange(id) || id == llGetOwner()) // Only parse these if we're in range/the wearer.
             {
+                // Report Website Link
+                // ---------------------------------------------------------------------------------------------
+                if (mesg == "☎ Reports")
+                {
+                    llLoadURL(id, ("RRDC Database\n\nInmate: " + g_inmateInfo), "https://rrdc.xyz");
+                }
                 // Shock Command.
                 // ---------------------------------------------------------------------------------------------
-                if (mesg == "☠ Shock") // Shock feature.
+                else if (mesg == "☠ Shock") // Shock feature.
                 {
                     if ((g_settings & 0x00000200))
                     {
