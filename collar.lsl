@@ -739,6 +739,7 @@ default
                 if (mesg == "☎ Reports")
                 {
                     llLoadURL(id, ("RRDC Database\n\nInmate: " + g_inmateInfo), "https://rrdc.xyz");
+                    llSleep(1.0); // Slow down reappearance of the menu.
                 }
                 // Shock Command.
                 // ---------------------------------------------------------------------------------------------
