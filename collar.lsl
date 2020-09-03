@@ -384,8 +384,21 @@ giveCharSheet(key user)
     {
         string note = llGetInventoryName(INVENTORY_NOTECARD, 0);
 
+        // If name is a URL, do a load URL to external instead of notecard vend.
+        if (llGetSubString(note, 0, 6) == "http://" || llGetSubString(note, 0, 7) == "https://")
+        {
+            string inmateID = llGetSubString(g_inmateInfo, 0, 4);
+
+            llLoadURL(user, "External Character Sheet\n\nID: " + inmateID +
+                "   Name: " + llGetSubString(g_inmateInfo, 6, -1), note);
+
+            llInstantMessage(user, "External Character Sheet for P-" + inmateID + ": " + note);
+
+            llSleep(4.0); // Slow down reappearance of the menu.
+            return;
+        }
         // Make sure we can transfer a copy of the notecard to the toucher.
-        if (llGetInventoryPermMask(note, MASK_OWNER) & (PERM_COPY | PERM_TRANSFER))
+        else if (llGetInventoryPermMask(note, MASK_OWNER) & (PERM_COPY | PERM_TRANSFER))
         {
             llOwnerSay("secondlife:///app/agent/" + ((string)user) + "/completename" +
                 " has taken a copy of your character sheet.");
