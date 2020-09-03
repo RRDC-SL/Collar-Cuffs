@@ -24,7 +24,7 @@ The collar and cuff set are fully capable of _both_ LockGuard and Lockmeister pr
 If you encounter any issues with the collar and cuff set or would like to request a feature,
 you can create an issue on the project GitHub page:
 
-    https://github.com/ShadowGear-SL/RRDC/issues
+    https://github.com/RRDC-SL/Collar-Cuffs/issues
 
 ---------------------------------------------------------------------------------------------------
 
