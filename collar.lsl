@@ -384,6 +384,9 @@ giveCharSheet(key user)
     {
         string note = llGetInventoryName(INVENTORY_NOTECARD, 0);
 
+        llOwnerSay("secondlife:///app/agent/" + ((string)user) + "/completename" +
+            " has requested your character sheet.");
+
         // If name is a URL, do a load URL to external instead of notecard vend.
         if (llGetSubString(note, 0, 6) == "http://" || llGetSubString(note, 0, 7) == "https://")
         {
@@ -400,9 +403,6 @@ giveCharSheet(key user)
         // Make sure we can transfer a copy of the notecard to the toucher.
         else if (llGetInventoryPermMask(note, MASK_OWNER) & (PERM_COPY | PERM_TRANSFER))
         {
-            llOwnerSay("secondlife:///app/agent/" + ((string)user) + "/completename" +
-                " has taken a copy of your character sheet.");
-
             llGiveInventory(user, note); // Offer notecard.
             llSleep(3.0);
             return;
