@@ -741,13 +741,13 @@ default
                     llOwnerSay("secondlife:///app/agent/" + ((string)id) + "/completename" +
                         " is accessing your file.");
 
-                    string inmateID = llGetSubString(g_inmateInfo, 0, 4)
+                    string inmateID = llGetSubString(g_inmateInfo, 0, 4);
 
                     llLoadURL(id, "RRDC Database Inmate Lookup\n\nID: " + inmateID +
                         "   Name: " + llGetSubString(g_inmateInfo, 6, -1),
                         "https://rrdc.xyz/inmate/" + inmateID);
 
-                    llSleep(1.0); // Slow down reappearance of the menu.
+                    llSleep(2.0); // Slow down reappearance of the menu.
                 }
                 // Shock Command.
                 // ---------------------------------------------------------------------------------------------
