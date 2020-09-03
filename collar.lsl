@@ -7,7 +7,7 @@
 
 // System Configuration Variables
 // ---------------------------------------------------------------------------------------------------------
-string  g_appVersion  = "1.2.0";                // The current software version for the collar.
+string  g_appVersion  = "1.2.1";                // The current software version for the collar.
 integer g_appChan     = -89039937;              // The channel for this application set.
 
 // =========================================================================================================
@@ -391,6 +391,7 @@ giveCharSheet(key user)
                 " has taken a copy of your character sheet.");
 
             llGiveInventory(user, note); // Offer notecard.
+            llSleep(3.0);
             return;
         }
     }
@@ -742,12 +743,14 @@ default
                         " is accessing your file.");
 
                     string inmateID = llGetSubString(g_inmateInfo, 0, 4);
+                    string inmateURL = "https://rrdc.xyz/inmate/" + inmateID;
 
                     llLoadURL(id, "RRDC Database Inmate Lookup\n\nID: " + inmateID +
-                        "   Name: " + llGetSubString(g_inmateInfo, 6, -1),
-                        "https://rrdc.xyz/inmate/" + inmateID);
+                        "   Name: " + llGetSubString(g_inmateInfo, 6, -1), inmateURL);
 
-                    llSleep(2.0); // Slow down reappearance of the menu.
+                    llInstantMessage(id, "RRDC Database Lookup for P-" + inmateID + ": " + inmateURL);
+
+                    llSleep(4.0); // Slow down reappearance of the menu.
                 }
                 // Shock Command.
                 // ---------------------------------------------------------------------------------------------
