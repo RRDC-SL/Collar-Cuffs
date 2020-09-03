@@ -1,4 +1,4 @@
-# [SGD] RRDC Collar and Cuffs v1.2.0 - Script Installation Manual #
+# [SGD] RRDC Collar and Cuffs v1.2.1 - Script Installation Manual #
 
 -------------------------------------------------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-# [SGD] RRDC Collar and Cuffs v1.2.0 - User Manual #
+# [SGD] RRDC Collar and Cuffs v1.2.1 - User Manual #
 
 ---------------------------------------------------------------------------------------------------
 
@@ -76,6 +76,12 @@ Toggles whether your collar is currently leashed to someone.
 * Being leashed to someone will force your avatar to stay within 2m of them.
 * Activating leash will draw a chain from your collar to the activating user.
 * If the user is wearing a leash-handle enabled attachment, the chain will be drawn to it.
+
+## Reports ##
+Allows you to access the inmate reports file in the RRDC Database.
+* The initiating user must be within 6m of you. The will not even appear otherwise.
+* You will recieve a message telling you who has accessed your file.
+* You can access your own file by finding this option in Settings.
 
 ## Settings ##
 Displays the settings menu for the user.

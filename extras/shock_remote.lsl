@@ -1,4 +1,4 @@
-// [SGD] RRDC Shock Remote v1.2.0 - Copyright 2020 Alex Pascal & RaithSphere Digipaws @ Second Life.
+// [SGD] RRDC Shock Remote v1.2.1 - Copyright 2020 Alex Pascal & RaithSphere Digipaws @ Second Life.
 // ---------------------------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
 //  If a copy of the MPL was not distributed with this file, You can obtain one at 
