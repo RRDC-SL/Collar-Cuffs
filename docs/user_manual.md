@@ -9,6 +9,7 @@ Wear or add the collar and the 4 cuffs, then touch the collar to access the menu
 1. Edit your collar and navigate to the Content tab of the edit window.
 2. Drag your character sheet notecard into the object contents.
     * For best results, make sure your character sheet is the only notecard in the collar.
+    * You can set an external character sheet by setting the notecard's name to the URL.
 
 ## Leash Handle Script Installation ##
 1. Edit the object you want to act as a leash handle and select the prim you want to recieve chains.
