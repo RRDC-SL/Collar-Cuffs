@@ -601,11 +601,13 @@ default
     {
         if (perm & (PERMISSION_TAKE_CONTROLS | PERMISSION_TRIGGER_ANIMATION))
         {
+            // Set the texture anim for the electric effects on the collar base.
+            llSetLinkTextureAnim(LINK_THIS, ANIM_ON | LOOP, 2, 32, 32, 0.0, 64.0, 20.4);
+
             integer i; // Find the prims we will work with.
-            string tag;
             for (i = 1; i <= llGetNumberOfPrims(); i++)
             {
-                tag = llList2String(llGetLinkPrimitiveParams(i, [PRIM_NAME]), 0);
+                string tag = llList2String(llGetLinkPrimitiveParams(i, [PRIM_NAME]), 0);
                 if (tag == "powerCore")
                 {
                     // Set texture anim for the power core.
@@ -631,8 +633,6 @@ default
                 return;
             }
 
-            // Set the texture anim for the electric effects on the collar base.
-            llSetLinkTextureAnim(LINK_THIS, ANIM_ON | LOOP, 2, 32, 32, 0.0, 64.0, 20.4);
             llMinEventDelay(0.2); // Slow events to reduce lag.
 
             versionCheck(FALSE); // Do initial startup version check.
