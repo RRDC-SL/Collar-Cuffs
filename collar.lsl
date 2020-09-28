@@ -817,19 +817,7 @@ default
                             " just activated your shock collar!");
 
                         llSetTimerEvent(0.0);
-                        llTakeControls(
-                                        CONTROL_FWD |
-                                        CONTROL_BACK |
-                                        CONTROL_LEFT |
-                                        CONTROL_RIGHT |
-                                        CONTROL_ROT_LEFT |
-                                        CONTROL_ROT_RIGHT |
-                                        CONTROL_UP |
-                                        CONTROL_DOWN |
-                                        CONTROL_LBUTTON |
-                                        CONTROL_ML_LBUTTON,
-                                        TRUE, FALSE
-                        );
+                        llTakeControls(0x33F, TRUE, FALSE);
                         llStartAnimation("animCollarZap");
                         llLoopSound("27a18333-a425-30b1-1ab6-c9a3a3554903", 0.5); // soundZapLoop.
                         g_shockCount = 12; // 0.8 seconds, then 2.0 seconds.
@@ -1376,19 +1364,7 @@ default
             g_shockCount = -76;     // 15 seconds timer.
             setSetting(9, TRUE);    // Set cooldown bit.
 
-            llTakeControls(
-                            CONTROL_FWD |
-                            CONTROL_BACK |
-                            CONTROL_LEFT |
-                            CONTROL_RIGHT |
-                            CONTROL_ROT_LEFT |
-                            CONTROL_ROT_RIGHT |
-                            CONTROL_UP |
-                            CONTROL_DOWN |
-                            CONTROL_LBUTTON |
-                            CONTROL_ML_LBUTTON,
-                            TRUE, TRUE
-            );
+            llTakeControls(0x33F, TRUE, TRUE); // All but LButton and MLButton.
         }
         else if (g_shockCount == -1) // Release cooldown.
         {
@@ -1446,22 +1422,12 @@ default
         {
             setSetting(1, !getSetting(1)); // Toggle LED state.
 
-            if (getSetting(1))
-            {
-                llSetLinkPrimitiveParamsFast(g_ledLink, [
-                    PRIM_COLOR, ALL_SIDES, <0.3, 0.0, 0.0>, llGetAlpha(0),
-                    PRIM_POINT_LIGHT, FALSE, ZERO_VECTOR, 0.5, 0.5, 0.1,
-                    PRIM_GLOW, ALL_SIDES, 0.0
-                ]);
-            }
-            else
-            {
-                llSetLinkPrimitiveParamsFast(g_ledLink, [
-                    PRIM_COLOR, ALL_SIDES, <1.0, 0.0, 0.0>, llGetAlpha(0),
-                    PRIM_POINT_LIGHT, TRUE, <1.0, 0.0, 0.0>, 0.35, 0.075, 0.1,
-                    PRIM_GLOW, ALL_SIDES, 1.0
-                ]);
-            }
+            llSetLinkPrimitiveParamsFast(g_ledLink, [
+                PRIM_COLOR, ALL_SIDES, <(1.0 - (0.7 * getSetting(1))), 0.0, 0.0>, llGetAlpha(0),
+                PRIM_POINT_LIGHT, !getSetting(1), <1.0, 0.0, 0.0>, 0.35, 0.075, 0.1,
+                PRIM_GLOW, ALL_SIDES, (float)(!getSetting(1))
+            ]);
+
             g_ledCount = 0;
         }
     }
