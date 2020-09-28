@@ -1,4 +1,4 @@
-// [SGD] RRDC Collar v1.2.1 (c) 2020 Alex Pascal (Alex Carpenter) @ Second Life.
+// [SGD] RRDC Collar v1.2.2 (c) 2020 Alex Pascal (Alex Carpenter) @ Second Life.
 // ---------------------------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
 //  If a copy of the MPL was not distributed with this file, You can obtain one at 
@@ -7,7 +7,7 @@
 
 // System Configuration Variables
 // ---------------------------------------------------------------------------------------------------------
-string  g_appVersion  = "1.2.1";                // The current software version for the collar.
+string  g_appVersion  = "1.2.2";                // The current software version for the collar.
 integer g_appChan     = -89039937;              // The channel for this application set.
 
 // =========================================================================================================
@@ -54,6 +54,7 @@ string  g_shacklePartTarget;                    // Key of the target prim for sh
 key     g_requestKey;                           // Inmate numbers request key.
 string  g_inmateInfo;                           // The current character's inmate number and name.
 string  g_animState;                            // Current AO animation state.
+integer g_animPartType;                         // Type of particles associated with the animation state.
 list    g_animList;                             // List of currently playing (base) anim names.
 list    g_avList;                               // Tracks leash/chaingang enabled avatars.
 list    g_curMenus;                             // Tracks current menu by user.
@@ -248,6 +249,34 @@ shackleParticles(integer on)
                                          PSYS_PART_FOLLOW_SRC_MASK)
         ]);
     }
+}
+
+// setPoseParticles - Given particle type, sends control messages. 0=None, 1=Out2In, 2=In2In, 3=ComboSet.
+// ---------------------------------------------------------------------------------------------------------
+setPoseParticles(integer partType)
+{
+    if (partType == 3) // ComboSet.
+    {
+        llWhisper(getAvChannel(llGetOwner()), "linkrequest leftwrist inner collarfrontloop shackle");
+        llWhisper(getAvChannel(llGetOwner()), "linkrequest rightwrist inner leftwrist inner");
+    }
+    else if (partType = 2) // In2In.
+    {
+        shackleParticles(FALSE);
+        llWhisper(getAvChannel(llGetOwner()), "linkrequest rightwrist inner leftwrist inner");
+    }
+    else if (partType == 1) // Out2In.
+    {
+        shackleParticles(FALSE);
+        llWhisper(getAvChannel(llGetOwner()), "linkrequest rightwrist outer leftwrist inner");
+    }
+    else // Release.
+    {
+        shackleParticles(FALSE);
+        llWhisper(getAvChannel(llGetOwner()), "unlink leftwrist inner");
+    }
+
+    g_animPartType = partType; // Record the new anim particle type.
 }
 
 // resetParticles - When activated sets current leash particle settings to defaults.
@@ -557,17 +586,24 @@ default
         );
     }
 
+    // Initialize Collar. Stage 1.
+    // ---------------------------------------------------------------------------------------------------------
+    on_rez(integer param)
+    {
+        llSetTimerEvent(0.0);
+        llSleep(4.0);
+        
+        llRequestPermissions(llGetOwner(),
+            (PERMISSION_TAKE_CONTROLS | PERMISSION_TRIGGER_ANIMATION)
+        );
+    }
+
     // Initialize collar. Stage 2.
     // -----------------------------------------------------------------------------------------------------
     run_time_permissions(integer perm)
     {
         if (perm & (PERMISSION_TAKE_CONTROLS | PERMISSION_TRIGGER_ANIMATION))
         {
-            versionCheck(FALSE); // Do initial startup version check.
-
-            // Set the texture anim for the electric effects on the collar base.
-            llSetLinkTextureAnim(LINK_THIS, ANIM_ON | LOOP, 2, 32, 32, 0.0, 64.0, 20.4);
-
             integer i; // Find the prims we will work with.
             string tag;
             for (i = 1; i <= llGetNumberOfPrims(); i++)
@@ -592,19 +628,30 @@ default
                 }
             }
 
-            updateInmateInfo("", ""); // Update inmate info from link description.
-
-            llMinEventDelay(0.2); // Slow events to reduce lag.
-
             if (g_shackleLink <= 0 || g_leashLink <= 0)
             {
                 llOwnerSay("FATAL: Missing chain emitters!");
                 return;
             }
 
+            // Set the texture anim for the electric effects on the collar base.
+            llSetLinkTextureAnim(LINK_THIS, ANIM_ON | LOOP, 2, 32, 32, 0.0, 64.0, 20.4);
+            llMinEventDelay(0.2); // Slow events to reduce lag.
+
+            versionCheck(FALSE); // Do initial startup version check.
+            updateInmateInfo("", ""); // Update inmate info from link description.
+
+            g_curMenus = []; // Clear menu users.
+            g_ledCount = 0; // Reset timers.
+            g_shockCount = 0;
+
+            resetLeash(); // Clear any leash effects.
             resetParticles();
             shackleParticles(FALSE); // Stop any particle effects and init.
             leashParticles(FALSE);
+
+            doAnimationOverride(TRUE);
+            setPoseParticles(g_animPartType); // Restart pose particles.
 
             llListen(-8888,"",NULL_KEY,""); // Open up LockGuard and Lockmeister listens.
             llListen(-9119,"",NULL_KEY,"");
@@ -613,13 +660,6 @@ default
             
             llSetTimerEvent(0.2); // Start the timer.
         }
-    }
-
-    // Reset the script on rez.
-    // ---------------------------------------------------------------------------------------------------------
-    on_rez(integer param)
-    {
-        llResetScript();
     }
     
     // Show the menu to the user on touch.
@@ -954,47 +994,41 @@ default
                 { // linkrequest <dest-tag> <inner|outer> <src-tag> <inner|outer>
                     doAnimationOverride(FALSE);
                     g_animList = ["cuffedArmsBackU_001"];
-                    shackleParticles(FALSE);
-                    llWhisper(getAvChannel(llGetOwner()), "linkrequest rightwrist outer leftwrist inner");
                     doAnimationOverride(TRUE);
+                    setPoseParticles(1);
                 }
                 else if (mesg == "웃 Back V")
                 {
                     doAnimationOverride(FALSE);
                     g_animList = ["cuffedArmsBackV_001"];
-                    shackleParticles(FALSE);
-                    llWhisper(getAvChannel(llGetOwner()), "linkrequest rightwrist inner leftwrist inner");
                     doAnimationOverride(TRUE);
+                    setPoseParticles(2);
                 }
                 else if (mesg == "웃 Front X")
                 {
                     doAnimationOverride(FALSE);
                     g_animList = ["cuffedArmsFrontX_001"];
-                    shackleParticles(FALSE);
-                    llWhisper(getAvChannel(llGetOwner()), "linkrequest rightwrist outer leftwrist inner");
                     doAnimationOverride(TRUE);
+                    setPoseParticles(1);
                 }
                 else if (mesg == "웃 Front V")
                 {
                     doAnimationOverride(FALSE);
                     g_animList = ["cuffedArmsFrontV_002"];
-                    shackleParticles(FALSE);
-                    llWhisper(getAvChannel(llGetOwner()), "linkrequest rightwrist inner leftwrist inner");
                     doAnimationOverride(TRUE);
+                    setPoseParticles(2);
                 }
                 else if (mesg == "웃 ComboSet") // Combination two poses.
                 {
                     doAnimationOverride(FALSE);
                     g_animList = ["cuffedArmsCollar001", "cuffedNeckForward001"];
-                    llWhisper(getAvChannel(llGetOwner()), "linkrequest leftwrist inner collarfrontloop shackle");
-                    llWhisper(getAvChannel(llGetOwner()), "linkrequest rightwrist inner leftwrist inner");
                     doAnimationOverride(TRUE);
+                    setPoseParticles(3);
                 }
                 else if (mesg == "✖ Release") // Release from pose.
                 {
                     doAnimationOverride(FALSE);
-                    shackleParticles(FALSE);
-                    llWhisper(getAvChannel(llGetOwner()), "unlink leftwrist inner");
+                    setPoseParticles(0);
                 }
                 else if (id == llGetOwner()) // Sound and texture commands are owner locked.
                 {
