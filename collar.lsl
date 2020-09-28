@@ -249,8 +249,8 @@ shackleParticles(integer on)
 
 // setPoseParticles - Given particle type, sends control messages. 0=None, 1=Out2In, 2=In2In, 3=ComboSet.
 // ---------------------------------------------------------------------------------------------------------
-setPoseParticles(integer partType)
-{
+setPoseParticles(integer partType) // Emitter is always leftwrist inner or collar shacklesPoint.
+{   // linkrequest <dest-tag> <inner|outer> <src-tag> <inner|outer>
     if (partType == 3) // ComboSet.
     {
         llWhisper(getAvChannel(llGetOwner()), "linkrequest leftwrist inner collarfrontloop shackle");
@@ -481,65 +481,20 @@ showMenu(string menu, key user)
         g_curMenus += [(string)user, llGetTime(), menu];
     }
 
+    list toggle = ["☐", "☒"]; // Unicode prefix options for toggle flags. ▩☐☒↺☠☯📜★✖
     string text = "\n\nChoose an option:";
     list buttons = [];
-    if (menu == "main") // Show main menu. ▩☐☒↺☠☯📜★✖
+
+    if (menu == "main") // Show main menu.
     {
-        // Wearer Menu. (Others see this minus Settings)
-        // -----------------------------------------------
-        // ☯ CharSheet     ☠ Shock        📜 Poses
-        // ☐ ChainGang     ☐ AnkleChain    ☐ Shackled
-        // ☐ Leash         📜 Settings     ✖ Close
-        //                 ✎ Reports
-
         text = "Main Menu" + text;
-
-        if (user == llGetOwner()) // Settings and close button for owner.
-        {
-            buttons = ["📜 Settings", "✖ Close"];
-        }
-        else // Blank and close button for others.
-        {
-            buttons = ["☎ Reports", "✖ Close"];
-        }
-
-        if (getSetting(7) && g_leashMode == "leashanchor") // Leash toggle.
-        {
-            buttons = ["☒ Leash"] + buttons;
-        }
-        else
-        {
-            buttons = ["☐ Leash"] + buttons;
-        }
-
-        if (getSetting(7) && g_leashMode == "leftankle") // Chain gang toggle.
-        {
-            buttons += ["☒ ChainGang"];
-        }
-        else
-        {
-            buttons += ["☐ ChainGang"];
-        }
-
-        if (getSetting(5)) // Ankle chain toggle.
-        {
-            buttons += ["☒ AnkleChain"];
-        }
-        else
-        {
-            buttons += ["☐ AnkleChain"];
-        }
-
-        if (getSetting(6)) // Shackle link toggle.
-        {
-            buttons += ["☒ Shackles"];
-        }
-        else
-        {
-            buttons += ["☐ Shackles"];
-        }
-
-        buttons += ["☯ CharSheet", "☠ Shock", "📜 Poses"];
+        buttons = [
+            llList2String(toggle, (getSetting(7) && g_leashMode == "leashanchor")) + " Leash",
+            llList2String(["☎ Reports", "📜 Settings"], (user == llGetOwner())), "✖ Close",
+            llList2String(toggle, (getSetting(7) && g_leashMode == "leftankle")) + " ChainGang",
+            llList2String(toggle, getSetting(5)) + " AnkleChain",
+            llList2String(toggle, getSetting(6)) + " Shackles",
+            "☯ CharSheet", "☠ Shock", "📜 Poses"];
     }
     else if (menu == "poses") // Poses menu.
     {
@@ -549,17 +504,10 @@ showMenu(string menu, key user)
     }
     else if (menu == "settings") // Settings menu.
     {
+        text = "Settings Menu" + text;
         buttons = [" ", " ", "↺ Main", "✎ CharName", "★ Version", "☎ Reports",
-                   "📜 InmateID", "📜 Textures"];
-
-        if (!getSetting(8))
-        {
-            buttons += ["☒ WalkSound"];
-        }
-        else
-        {
-            buttons += ["☐ WalkSound"];
-        }
+                   "📜 InmateID", "📜 Textures",
+                   llList2String(toggle, !getSetting(8)) + " WalkSound"];
     }
     else if (menu == "textures") // Textures menu.
     {
@@ -980,8 +928,8 @@ default
                     showMenu("poses", id);
                     return;
                 }
-                else if (mesg == "웃 Back U") // Emitter is always leftwrist inner or collar shacklesPoint.
-                { // linkrequest <dest-tag> <inner|outer> <src-tag> <inner|outer>
+                else if (mesg == "웃 Back U") // Start a pose or release.
+                {
                     doAnimationOverride(FALSE);
                     g_animList = ["cuffedArmsBackU_001"];
                     doAnimationOverride(TRUE);
