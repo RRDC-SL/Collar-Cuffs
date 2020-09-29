@@ -1,4 +1,4 @@
-// [SGD] RRDC Collar v1.2.1 (c) 2020 Alex Pascal (Alex Carpenter) @ Second Life.
+// [SGD] RRDC Collar v1.2.2 (c) 2020 Alex Pascal (Alex Carpenter) @ Second Life.
 // ---------------------------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
 //  If a copy of the MPL was not distributed with this file, You can obtain one at 
@@ -7,7 +7,7 @@
 
 // System Configuration Variables
 // ---------------------------------------------------------------------------------------------------------
-string  g_appVersion  = "1.2.1";                // The current software version for the collar.
+string  g_appVersion  = "1.2.2";                // The current software version for the collar.
 integer g_appChan     = -89039937;              // The channel for this application set.
 
 // =========================================================================================================
@@ -572,7 +572,7 @@ default
             string tag;
             for (i = 1; i <= llGetNumberOfPrims(); i++)
             {
-                tag = llList2String(llGetLinkPrimitiveParams(i, [PRIM_NAME]), 0);
+                tag = llGetLinkName(i);
                 if (tag == "powerCore")
                 {
                     // Set texture anim for the power core.
@@ -591,6 +591,11 @@ default
                     g_shackleLink = i;
                 }
             }
+
+            // Quick and stupid way to make walk sounds settings persist through resets.
+            i = (integer)llList2String(llGetLinkPrimitiveParams(g_shackleLink, [PRIM_DESC]), 0);
+            g_settings = ((g_settings & 0xFFFFFEFF) | (i << 8)); // Save the state we passed in.
+            llSetLinkPrimitiveParamsFast(g_shackleLink, [PRIM_DESC, (string)i]);
 
             updateInmateInfo("", ""); // Update inmate info from link description.
 
@@ -1094,6 +1099,8 @@ default
                     else if (mesg == "☐ WalkSound" || mesg == "☒ WalkSound" ) // Turn chain walk sounds on/off.
                     {
                         g_settings = (g_settings ^ 0x00000100);
+                        llSetLinkPrimitiveParamsFast(g_shackleLink, 
+                            [PRIM_DESC, (string)((g_settings & 0x00000100) && TRUE)]);
                     }
                     // Set Inmate Number.
                     // -----------------------------------------------------------------------------------------
