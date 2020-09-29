@@ -442,7 +442,7 @@ giveCharSheet(key user)
 // ---------------------------------------------------------------------------------------------------------
 showMenu(string menu, key user)
 {
-    if (!inRange(user) && user != llGetOwner()) // User out of range?
+    if (!inRange(user)) // User out of range?
     {
         if (menu == "main") // Only CharSheet option in menu, so just give CharSheet.
         {
