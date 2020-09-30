@@ -1,4 +1,4 @@
-# [SGD] RRDC Collar and Cuffs v1.2.1 - User Manual #
+# [SGD] RRDC Collar and Cuffs v1.2.2 - User Manual #
 
 ---------------------------------------------------------------------------------------------------
 

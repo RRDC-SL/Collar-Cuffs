@@ -1,4 +1,4 @@
-// [SGD] RRDC Cuffs v1.2.1 - Copyright 2020 Alex Pascal (Alex Carpenter).
+// [SGD] RRDC Cuffs v1.2.2 - Copyright 2020 Alex Pascal (Alex Carpenter).
 //  Based on combined Lockmeister and LockGuard script by Felis Darwin.
 // ----------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
