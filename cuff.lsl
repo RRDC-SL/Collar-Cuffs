@@ -28,8 +28,8 @@ string  g_innerPartTarget;                      // Key of the target prim for in
 integer g_outerLink;                            // Link number of the outer/LGLM emitter.
 integer g_innerLink;                            // Link number of the inner emitter.
 integer g_particleMode;                         // FALSE = LG/LM, TRUE = Intercuff.
+string  g_LMTag;                                // Current LockMeister tag.
 list    g_LGTags;                               // List of current LockGuard tags.
-list    g_LMTags;                               // List of current LockMeister tags.
 // ========================================================================================
 
 // getAvChannel - Given an avatar key, returns a static channel XORed with g_appChan.
@@ -39,26 +39,19 @@ integer getAvChannel(key av)
     return (0x80000000 | ((integer)("0x"+(string)av) ^ g_appChan));
 }
 
-// fMin - Given two floats, returns the smallest.
+// fClamp - Given a number, returns number bounded by lower and upper.
 // ----------------------------------------------------------------------------------------
-float fMin(float f1, float f2)
+float fClamp(float value, float lower, float upper)
 {
-    if (f2 < f1)
+    if (value < lower)
     {
-        return f2;
+        return lower;
     }
-    return f1;
-}
-
-// fMax - Given two floats, returns the largest.
-// ----------------------------------------------------------------------------------------
-float fMax(float f1, float f2)
-{
-    if (f2 > f1)
+    else if (value > upper)
     {
-        return f2;
+        return upper;
     }
-    return f1;
+    return value;
 }
 
 // outerParticles - Turns outer/LockGuard chain/rope particles on or off.
@@ -154,11 +147,11 @@ toggleMode(integer mode)
 
         if (!mode) // Send stop poses or stop leash command.
         {
-            if (llList2String(g_LMTags, 0) == "lcuff")
+            if (g_LMTag == "lcuff")
             {
                 llWhisper(getAvChannel(llGetOwner()), "stopposes collarfrontloop");
             }
-            else if (llList2String(g_LMTags, 0) == "llcuff")
+            else if (g_LMTag == "llcuff")
             {
                 llWhisper(getAvChannel(llGetOwner()), "stopleash collarfrontloop");
             }
@@ -186,64 +179,22 @@ default
                 g_outerLink = i;
             }
         }
-        
-        // Parse the description field for potential LM tags.
-        list l = llParseString2List(llGetObjectDesc(),[":"],[]);
-        
-        if(l == []) // If we have ZERO config information, make a guess based on attach point.
-        {
-            l = llList2List(["","collar","thead","lblade","rblade","lhand","rhand","llcuff",
-                             "rlcuff","collar","pelvis","lbit","rbit","","","","","nose",
-                             "rbiceps","rcuff","lbiceps","lcuff","rfbelt","rtigh","rlcuff",
-                             "lfbelt","ltigh","llcuff","fbelt","lnipple","rnipple","","","",
-                             "","","","","","collar","fbelt"],
-                llGetAttached(),llGetAttached());
-        }
-        
-        integer j; // Parse all the LM tags found.
-        list tList;
-        for(i = 0; i < llGetListLength(l); i++)
-        {
-            tag = llToLower(llStringTrim(llList2String(l,i), STRING_TRIM)); // Clean tag name.
-            
-            j = llListFindList(
-                ["rcuff","rbiceps","lbiceps","lcuff","lblade","rblade","rnipple",
-                "lnipple","rtigh","ltigh","rlcuff","llcuff","pelvis","fbelt","bbelt",
-                "rcollar","lcollar","thead","collar","lbit","rbit","nose","bcollar",
-                "back"], [tag]
-            );
-            if (j > -1) // LM tag. Add if not already present.
-            {
-                if (llListFindList(g_LMTags, [tag]) <= -1)
-                {
-                    g_LMTags += [tag];
-                }
 
-                // Add corresponding LG tags, if not present.
-                tList = llParseString2List(llList2String(
-                    ["rightwrist|wrists|allfour","rightupperarm|arms","leftupperarm|arms",
-                    "leftwrist|wrists|allfour","harnessleftshoulderloop",
-                    "harnessrightshoulderloop","rightnipplering|nipples",
-                    "leftnipplering|nipples","rightupperthigh|thighs","leftupperthigh|thighs",
-                    "rightankle|ankles|allfour","leftankle|ankles|allfour",
-                    "clitring|cockring|ballring","frontbeltloop","backbeltloop",
-                    "collarrightloop","collarleftloop","topheadharness", "collarfrontloop",
-                    "leftgag","rightgag","nosering","collarbackloop","harnessbackloop"], j), ["|"], []
-                );
-                if (llListFindList(g_LGTags, [llList2String(tList, 0)]) <= -1)
-                {
-                    g_LGTags += tList;
-                }
-            }
-        }
+        g_LMTag = llGetObjectDesc(); // Fetch tags based on the description.
+        i = llListFindList(["rcuff", "lcuff", "rlcuff", "llcuff"], [g_LMTag]);
 
-        llSetMemoryLimit(llGetUsedMemory() + 2048); // Limit script memory consumption.
-
-        if (g_LMTags == [] || g_innerLink <= 0 || g_outerLink <= 0)
+        if (i < 0 || g_innerLink <= 0 || g_outerLink <= 0) // Stop if system not intact.
         {
             llOwnerSay("FATAL: Unknown anchor and/or missing chain emitters!");
-            return;
+            return; // Ensure safe-ish LGTags lookup.
         }
+
+        g_LGTags = llParseString2List(llList2String( // Fetch LGTags.
+            ["rightwrist|wrists|allfour", "leftwrist|wrists|allfour",
+             "rightankle|ankles|allfour","leftankle|ankles|allfour"]
+            ), ["|"], []);
+
+        llSetMemoryLimit(llGetUsedMemory() + 2048); // Limit script memory consumption.
 
         resetParticles();
         innerParticles(FALSE); // Stop any particle effects and init.
@@ -355,13 +306,13 @@ default
         }
         else if(chan == -8888 && llGetSubString(mesg, 0, 35) == ((string)llGetOwner())) // Process LM.
         {
-            if(llListFindList(g_LMTags, [llGetSubString(mesg, 36, -1)]) > -1)
+            if(g_LMTag == llGetSubString(mesg, 36, -1))
             {
                 toggleMode(FALSE);
                 llRegionSayTo(id, -8888, mesg + " ok");
             }
             else if (llGetSubString(mesg, 36, 54) == "|LMV2|RequestPoint|" &&      // LMV2.
-                     llListFindList(g_LMTags, [llGetSubString(mesg, 55, -1)]) > -1)
+                     g_LMTag == llGetSubString(mesg, 55, -1))
             {
                 llRegionSayTo(id, -8888, ((string)llGetOwner()) + "|LMV2|ReplyPoint|" + 
                     llGetSubString(mesg, 55, -1) + "|" + ((string)llGetLinkKey(g_outerLink))
@@ -396,13 +347,13 @@ default
                     else if(name == "gravity")
                     {
                         toggleMode(FALSE);
-                        g_partGravity = fMax(0.0, fMin(llList2Float(tList, (i + 1)), 100.0));
+                        g_partGravity = fClamp(llList2Float(tList, (i + 1)), 0.0, 100.0);
                         i += 2;
                     }
                     else if(name == "life")
                     {
                         toggleMode(FALSE);
-                        g_partLife = fMax(0.0, llList2Float(tList, (i + 1)));
+                        g_partLife = fClamp(llList2Float(tList, (i + 1)), 0.0, 30.0);
                         i += 2;
                     }
                     else if(name == "texture")
@@ -418,7 +369,7 @@ default
                     else if(name == "rate")
                     {
                         toggleMode(FALSE);
-                        g_partRate = fMax(0.0, llList2Float(tList, (i + 1)));
+                        g_partRate = fClamp(llList2Float(tList, (i + 1)), 0.0, 60.0);
                         i += 2;
                     }
                     else if(name == "follow")
@@ -430,16 +381,16 @@ default
                     else if(name == "size")
                     {
                         toggleMode(FALSE);
-                        g_partSizeX = fMax(0.03125, fMin(llList2Float(tList, (i + 1)), 4.0));
-                        g_partSizeY = fMax(0.03125, fMin(llList2Float(tList, (i + 2)), 4.0));
+                        g_partSizeX = fClamp(llList2Float(tList, (i + 1)), 0.03125, 4.0);
+                        g_partSizeY = fClamp(llList2Float(tList, (i + 2)), 0.03125, 4.0);
                         i += 3;
                     }
                     else if(name == "color")
                     {
                         toggleMode(FALSE);
-                        g_partColor.x = fMax(0.0, fMin(llList2Float(tList, (i + 1)), 1.0));
-                        g_partColor.y = fMax(0.0, fMin(llList2Float(tList, (i + 2)), 1.0));
-                        g_partColor.z = fMax(0.0, fMin(llList2Float(tList, (i + 3)), 1.0));
+                        g_partColor.x = fClamp(llList2Float(tList, (i + 1)), 0.0, 1.0);
+                        g_partColor.y = fClamp(llList2Float(tList, (i + 2)), 0.0, 1.0);
+                        g_partColor.z = fClamp(llList2Float(tList, (i + 3)), 0.0, 1.0);
                         i += 4;
                     }
                     else if(name == "ping")
