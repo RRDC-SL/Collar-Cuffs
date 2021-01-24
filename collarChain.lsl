@@ -21,15 +21,13 @@ float   g_partGravity;                          // Current particle gravity.
 vector  g_partColor;                            // Current particle color.
 float   g_partRate;                             // Current particle rate.
 integer g_partFollow;                           // Current particle follow flag.
-integer g_outerPartOn;                          // If TRUE, outerLink particles are on.
-integer g_innerPartOn;                          // If TRUE, innerLink particles are on.
-string  g_outerPartTarget;                      // Key of the target prim for LG/outer.
-string  g_innerPartTarget;                      // Key of the target prim for inner.
-integer g_outerLink;                            // Link number of the outer/LGLM emitter.
-integer g_innerLink;                            // Link number of the inner emitter.
+integer g_leashPartOn;                          // If TRUE, leashLink particles are on.
+integer g_shacklePartOn;                        // If TRUE, shackleLink particles are on.
+string  g_leashPartTarget;                      // Key of the target prim for LG/leash.
+string  g_shacklePartTarget;                    // Key of the target prim for shackle.
+integer g_leashLink;                            // Link number of the leash/LGLM emitter.
+integer g_shackleLink;                          // Link number of the shackle emitter.
 integer g_particleMode;                         // FALSE = LG/LM, TRUE = Intercuff.
-string  g_LMTag;                                // Current LockMeister tag.
-list    g_LGTags;                               // List of current LockGuard tags.
 // ========================================================================================
 
 // getAvChannel - Given an avatar key, returns a static channel XORed with g_appChan.
@@ -54,20 +52,20 @@ float fClamp(float value, float lower, float upper)
     return value;
 }
 
-// outerParticles - Turns outer/LockGuard chain/rope particles on or off.
+// leashParticles - Turns leash/LockGuard chain/rope particles on or off.
 // ----------------------------------------------------------------------------------------
-outerParticles(integer on)
+leashParticles(integer on)
 {
-    g_outerPartOn = on; // Save the state we passed in.
+    g_leashPartOn = on; // Save the state we passed in.
     
     if(!on) // If LG particles should be turned off, turn them off and reset defaults.
     {
-        llLinkParticleSystem(g_outerLink, []); // Stop particle system and clear target.
-        g_outerPartTarget   = NULL_KEY;
+        llLinkParticleSystem(g_leashLink, []); // Stop particle system and clear target.
+        g_leashPartTarget   = NULL_KEY;
     }
     else // If LG particles are to be turned on, turn them on.
     {
-        llLinkParticleSystem(g_outerLink,
+        llLinkParticleSystem(g_leashLink,
         [
             PSYS_SRC_PATTERN,           PSYS_SRC_PATTERN_DROP,
             PSYS_SRC_BURST_PART_COUNT,  1,
@@ -78,7 +76,7 @@ outerParticles(integer on)
             PSYS_PART_START_COLOR,      g_partColor,
             PSYS_PART_START_SCALE,      <g_partSizeX, g_partSizeY, 0.0>,
             PSYS_SRC_ACCEL,             <0.0, 0.0, (g_partGravity * -1.0)>,
-            PSYS_SRC_TARGET_KEY,        (key)g_outerPartTarget,
+            PSYS_SRC_TARGET_KEY,        (key)g_leashPartTarget,
             PSYS_PART_FLAGS,            (PSYS_PART_TARGET_POS_MASK                           |
                                          PSYS_PART_FOLLOW_VELOCITY_MASK                      |
                                          PSYS_PART_TARGET_LINEAR_MASK * (g_partGravity == 0) |
@@ -87,20 +85,20 @@ outerParticles(integer on)
     }
 }
 
-// innerParticles - Turns inner chain/rope particles on or off.
+// shackleParticles - Turns shackle chain/rope particles on or off.
 // ----------------------------------------------------------------------------------------
-innerParticles(integer on)
+shackleParticles(integer on)
 {
-    g_innerPartOn = on;
+    g_shacklePartOn = on;
 
-    if (!on) // Turn inner particle system off.
+    if (!on) // Turn shackle particle system off.
     {
-        llLinkParticleSystem(g_innerLink, []); // Stop particle system and clear target.
-        g_innerPartTarget   = NULL_KEY;
+        llLinkParticleSystem(g_shackleLink, []); // Stop particle system and clear target.
+        g_shacklePartTarget   = NULL_KEY;
     }
-    else // Turn the inner particle system on.
+    else // Turn the shackle particle system on.
     {
-        llLinkParticleSystem(g_innerLink,
+        llLinkParticleSystem(g_shackleLink,
         [
             PSYS_SRC_PATTERN,           PSYS_SRC_PATTERN_DROP,
             PSYS_SRC_BURST_PART_COUNT,  1,
@@ -111,7 +109,7 @@ innerParticles(integer on)
             PSYS_PART_START_COLOR,      <1.0, 1.0, 1.0>,
             PSYS_PART_START_SCALE,      <0.04, 0.04, 0.0>,
             PSYS_SRC_ACCEL,             <0.0, 0.0, -0.3>,
-            PSYS_SRC_TARGET_KEY,        (key)g_innerPartTarget,
+            PSYS_SRC_TARGET_KEY,        (key)g_shacklePartTarget,
             PSYS_PART_FLAGS,            (PSYS_PART_TARGET_POS_MASK      |
                                          PSYS_PART_FOLLOW_VELOCITY_MASK |
                                          PSYS_PART_FOLLOW_SRC_MASK)
@@ -119,7 +117,7 @@ innerParticles(integer on)
     }
 }
 
-// resetParticles - When activated sets current outer particle settings to defaults.
+// resetParticles - When activated sets current leash particle settings to defaults.
 // ---------------------------------------------------------------------------------------------------------
 resetParticles()
 {
@@ -139,8 +137,8 @@ toggleMode(integer mode)
 {
     if (g_particleMode != mode) // If the mode actually changed.
     {
-        outerParticles(FALSE); // Clear all particles.
-        innerParticles(FALSE);
+        leashParticles(FALSE); // Clear all particles.
+        shackleParticles(FALSE);
         resetParticles();
 
         g_particleMode = mode; // Toggle mode.
@@ -170,35 +168,27 @@ default
         for (i = 1; i <= llGetNumberOfPrims(); i++)
         {
             tag = llToLower(llStringTrim(llGetLinkName(i), STRING_TRIM));
-            if (tag == "innerlink")
+            if (tag == "shacklelink")
             {
-                g_innerLink = i;
+                g_shackleLink = i;
             }
-            else if (tag == "outerlink")
+            else if (tag == "leashlink")
             {
-                g_outerLink = i;
+                g_leashLink = i;
             }
         }
 
-        g_LMTag = llGetObjectDesc(); // Fetch tags based on the description.
-        i = llListFindList(["rcuff", "lcuff", "rlcuff", "llcuff"], [g_LMTag]);
-
-        if (i < 0 || g_innerLink <= 0 || g_outerLink <= 0) // Stop if system not intact.
+        if (g_shackleLink <= 0 || g_leashLink <= 0) // Stop if system not intact.
         {
             llOwnerSay("FATAL: Unknown anchor and/or missing chain emitters!");
             return; // Ensure safe-ish LGTags lookup.
         }
 
-        g_LGTags = llParseString2List(llList2String( // Fetch LGTags.
-            ["rightwrist|wrists|allfour", "leftwrist|wrists|allfour",
-             "rightankle|ankles|allfour","leftankle|ankles|allfour"]
-            ), ["|"], []);
-
         llSetMemoryLimit(llGetUsedMemory() + 2048); // Limit script memory consumption.
 
         resetParticles();
-        innerParticles(FALSE); // Stop any particle effects and init.
-        outerParticles(FALSE);
+        shackleParticles(FALSE); // Stop any particle effects and init.
+        leashParticles(FALSE);
 
         llListen(-8888,"",NULL_KEY,""); // Open up LockGuard and Lockmeister listens.
         llListen(-9119,"",NULL_KEY,"");
@@ -220,66 +210,66 @@ default
         if (chan == getAvChannel(llGetOwner()) && llGetOwnerKey(id) != id) // Process RRDC commands.
         {
             list l = llParseString2List(mesg, [" "], []);
-            if (llListFindList(g_LGTags, [llList2String(l, 1)]) > -1) // LG tag match.
+            if (llList2String(l, 1) == "collarfrontloop") // LG tag match.
             {
                 name = llToLower(llList2String(l, 0));
-                if (name == "unlink") // unlink <tag> <inner|outer>
+                if (name == "unlink") // unlink <tag> <shackle|leash>
                 {
-                    if (llToLower(llList2String(l, 2)) == "inner")
+                    if (llToLower(llList2String(l, 2)) == "shackle")
                     {
-                        innerParticles(FALSE);
+                        shackleParticles(FALSE);
                     }
-                    else if (g_particleMode) // Outer.
+                    else if (g_particleMode) // leash.
                     {
                         resetParticles();
-                        outerParticles(FALSE);
+                        leashParticles(FALSE);
                     }
                 }
-                else if (name == "link") // link <tag> <inner|outer> <dest-uuid>
+                else if (name == "link") // link <tag> <shackle|leash> <dest-uuid>
                 {
                     toggleMode(TRUE);
-                    if (llToLower(llList2String(l, 2)) == "inner")
+                    if (llToLower(llList2String(l, 2)) == "shackle")
                     {
-                        g_innerPartTarget = llList2Key(l, 3);
-                        innerParticles(TRUE);
+                        g_shacklePartTarget = llList2Key(l, 3);
+                        shackleParticles(TRUE);
                     }
-                    else // Outer.
+                    else // leash.
                     {
-                        g_outerPartTarget = llList2Key(l, 3);
-                        outerParticles(TRUE);
+                        g_leashPartTarget = llList2Key(l, 3);
+                        leashParticles(TRUE);
                     }
-                }       // linkrequest <dest-tag> <inner|outer|x> <src-tag> <inner|outer>
+                }       // linkrequest <dest-tag> <shackle|leash|x> <src-tag> <shackle|leash>
                 else if (name == "linkrequest")
                 {
-                    if (llToLower(llList2String(l, 2)) == "inner") // Get the link UUID.
+                    if (llToLower(llList2String(l, 2)) == "shackle") // Get the link UUID.
                     {
-                        name = (string)llGetLinkKey(g_innerLink);
+                        name = (string)llGetLinkKey(g_shackleLink);
                     }
-                    else // Outer.
+                    else // leash.
                     {
-                        name = (string)llGetLinkKey(g_outerLink);
+                        name = (string)llGetLinkKey(g_leashLink);
                     }
 
                     llWhisper(getAvChannel(llGetOwnerKey(id)), "link " + // Send link message.
                         llList2String(l, 3) + " " +
                         llList2String(l, 4) + " " + name
                     );
-                }           // leashto <src-tag> <inner|outer> <uuid> <dest-tag> <inner|outer|x>
+                }           // leashto <src-tag> <shackle|leash> <uuid> <dest-tag> <shackle|leash|x>
                 else if (name == "leashto")
                 {
                     toggleMode(TRUE);
                     g_partLife = 2.4;     // Make the chain a little longer for leash/chain gang.
                     g_partGravity = 0.15;
 
-                    if (llToLower(llList2String(l, 2)) == "inner") // Make a temp link.
+                    if (llToLower(llList2String(l, 2)) == "shackle") // Make a temp link.
                     {
-                        g_innerPartTarget = llList2Key(l, 3);
-                        innerParticles(TRUE);
+                        g_shacklePartTarget = llList2Key(l, 3);
+                        shackleParticles(TRUE);
                     }
-                    else // Outer.
+                    else // leash.
                     {
-                        g_outerPartTarget = llList2Key(l, 3);
-                        outerParticles(TRUE);
+                        g_leashPartTarget = llList2Key(l, 3);
+                        leashParticles(TRUE);
                     }
 
                     llWhisper(getAvChannel(llList2Key(l, 3)), "linkrequest " +
@@ -306,16 +296,16 @@ default
         }
         else if(chan == -8888 && llGetSubString(mesg, 0, 35) == ((string)llGetOwner())) // Process LM.
         {
-            if(g_LMTag == llGetSubString(mesg, 36, -1))
+            if(llGetSubString(mesg, 36, -1) == "collar")
             {
                 toggleMode(FALSE);
                 llRegionSayTo(id, -8888, mesg + " ok");
             }
             else if (llGetSubString(mesg, 36, 54) == "|LMV2|RequestPoint|" &&      // LMV2.
-                     g_LMTag == llGetSubString(mesg, 55, -1))
+                     llGetSubString(mesg, 55, -1) == "collar")
             {
                 llRegionSayTo(id, -8888, ((string)llGetOwner()) + "|LMV2|ReplyPoint|" + 
-                    llGetSubString(mesg, 55, -1) + "|" + ((string)llGetLinkKey(g_outerLink))
+                    llGetSubString(mesg, 55, -1) + "|" + ((string)llGetLinkKey(g_leashLink))
                 );
             }
         }                                                                          // Process LG.
@@ -324,7 +314,7 @@ default
             list tList = llParseString2List(mesg, [" "], []);
             
             // lockguard [avatarKey/ownerKey] [item] [command] [variable(s)] 
-            if(llListFindList(g_LGTags, [llList2String(tList, 2)]) > -1 || llList2String(tList, 2) == "all")
+            if(llList2String(l, 1) == "collarfrontloop" || llList2String(tList, 2) == "all")
             {
                 integer i = 3; // Start at the first command position and parse the commands.
                 while(i < llGetListLength(tList))
@@ -333,14 +323,14 @@ default
                     if(name == "link")
                     {
                         toggleMode(FALSE);
-                        g_outerPartTarget = llList2Key(tList, (i + 1));
-                        outerParticles(TRUE);
+                        g_leashPartTarget = llList2Key(tList, (i + 1));
+                        leashParticles(TRUE);
                         i += 2;
                     }
                     else if(name == "unlink" && !g_particleMode)
                     {
                         resetParticles();
-                        outerParticles(FALSE);
+                        leashParticles(FALSE);
                         tList = [];
                         return;
                     }
@@ -395,24 +385,18 @@ default
                     }
                     else if(name == "ping")
                     {
-                        llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " " +
-                            llList2String(g_LGTags, 0) + " okay"
-                        );
+                        llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " collarfrontloop okay");
                         i++;
                     }
                     else if(name == "free")
                     {
-                        if(g_outerPartOn)
+                        if(g_leashPartOn)
                         {
-                            llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " " + 
-                                llList2String(g_LGTags, 0) + " no"
-                            );
+                            llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " collarfrontloop no");
                         }
                         else
                         {
-                            llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " " + 
-                                llList2String(g_LGTags, 0) + " yes"
-                            );
+                            llRegionSayTo(id, -9119, "lockguard " + ((string)llGetOwner()) + " collarfrontloop yes");
                         }
                         i++;
                     }
@@ -422,7 +406,7 @@ default
                     }
                 }
                 
-                outerParticles(g_outerPartOn); // Refresh particles.
+                leashParticles(g_leashPartOn); // Refresh particles.
             }
         }
     }
