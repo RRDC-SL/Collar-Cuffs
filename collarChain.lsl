@@ -1,5 +1,5 @@
-// [SGD] RRDC Cuffs v1.3.0 - Copyright 2021 Sasha Wyrding (alex.carpenter) @ Second Life.
-//  Based on combined Lockmeister and LockGuard script by Felis Darwin.
+// [SGD] RRDC Collar Chains v1.3.0 (c) 2021 Sasha Wyrding (alex.carpenter) @ Second Life.
+// Based on combined Lockmeister and LockGuard script by Felis Darwin.
 // ----------------------------------------------------------------------------------------
 // This Source Code Form is subject to the terms of the Mozilla Public License, v2.0. 
 //  If a copy of the MPL was not distributed with this file, You can obtain one at 
