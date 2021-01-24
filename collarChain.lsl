@@ -118,7 +118,7 @@ shackleParticles(integer on)
 }
 
 // resetParticles - When activated sets current leash particle settings to defaults.
-// ---------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------
 resetParticles()
 {
     g_partTex        = "dbeee6e7-4a63-9efe-125f-ceff36ceeed2"; // thinchain.
