@@ -254,30 +254,6 @@ default
                         llList2String(l, 3) + " " +
                         llList2String(l, 4) + " " + name
                     );
-                }           // leashto <src-tag> <shackle|leash> <uuid> <dest-tag> <shackle|leash|x>
-                else if (name == "leashto")
-                {
-                    toggleMode(TRUE);
-                    g_partLife = 2.4;     // Make the chain a little longer for leash/chain gang.
-                    g_partGravity = 0.15;
-
-                    if (llToLower(llList2String(l, 2)) == "shackle") // Make a temp link.
-                    {
-                        g_shacklePartTarget = llList2Key(l, 3);
-                        shackleParticles(TRUE);
-                    }
-                    else // leash.
-                    {
-                        g_leashPartTarget = llList2Key(l, 3);
-                        leashParticles(TRUE);
-                    }
-
-                    llWhisper(getAvChannel(llList2Key(l, 3)), "linkrequest " +
-                        llList2String(l, 4) + " " +
-                        llList2String(l, 5) + " " +
-                        llList2String(l, 1) + " " +
-                        llList2String(l, 2)
-                    );
                 }
                 else if (name == "ping") // ping <dest-tag> <src-tag>
                 {
@@ -285,12 +261,6 @@ default
                         llList2String(l, 2) + " " +
                         llList2String(l, 1)
                     );
-                }
-                else if (name == "settexture") // settexture <tag> <uuid>
-                {
-                    llSetLinkPrimitiveParamsFast(LINK_THIS, [
-                        PRIM_TEXTURE, 1, llList2String(l, 2), <1.0, 1.0, 0.0>, ZERO_VECTOR, 0.0
-                    ]);
                 }
             }
         }
